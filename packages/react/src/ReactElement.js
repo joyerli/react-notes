@@ -52,6 +52,7 @@ function hasValidKey(config) {
   return config.key !== undefined;
 }
 
+// 在开发模式下，获取属性对象中的key属性，则会报错，报错信息使用displayName优化体验
 function defineKeyPropWarningGetter(props, displayName) {
   const warnAboutAccessingKey = function() {
     if (__DEV__) {
@@ -74,6 +75,8 @@ function defineKeyPropWarningGetter(props, displayName) {
   });
 }
 
+
+// 在开发模式下，获取属性对象中的reg属性，则会报错，报错信息使用displayName优化体验
 function defineRefPropWarningGetter(props, displayName) {
   const warnAboutAccessingRef = function() {
     if (__DEV__) {
@@ -128,33 +131,68 @@ function warnIfStringRefCannotBeAutoConverted(config) {
  * the class pattern, so do not use new to call it. Also, instanceof check
  * will not work. Instead test $$typeof field against Symbol.for('react.element') to check
  * if something is a React Element.
+ * 注释翻译: 创建一个新的react元素的工厂函数，将不在遵循类模式使用new去调用它。
+ *  同样，不可以使用`instanceof`操作来检验一个元素是否属于某一个类，而是请使用元素对象中
+ *  $$typeof字段和Symbol.for('react.element')判断。
  *
- * @param {*} type
- * @param {*} props
- * @param {*} key
- * @param {string|object} ref
- * @param {*} owner
+ * @param {*} type 元素类型
+ * @param {*} props 元素属性
+ * @param {*} key 元素编号
+ * @param {string|object} ref ref属性
+ * @param {*} owner TODO: 当前所有者,见下面self中的说明
  * @param {*} self A *temporary* helper to detect places where `this` is
  * different from the `owner` when React.createElement is called, so that we
  * can warn. We want to get rid of owner and replace string `ref`s with arrow
  * functions, and as long as `this` and owner are the same, there will be no
  * change in behavior.
+ * 注释翻译: 一个在调用React.createElement时临时的判断调用者this跟owner不一致时发出警告的机制。
+ *  后续ref只允许使用箭头函数方式，就可以保证this跟owner不会出现不一致，该机制也就可以废除掉。
+ * TODO:
+ * 实际情况下，经过研究发现：
+ * 对于 owner，为调用React.createElement所在组件对象会被挂载到的容器FiberNode节点，
+ *  FiberNode为虚拟dom节点, 可以是没有真实的dom对应的节点。如:
+ *
+ * class Welcome extends React.PureComponent {
+ *   render() {
+ *     const node = (<h1 key='123'>Hello, word</h1>);
+ *     console.log(node);
+ *     return (<h5>{node}</h5>);
+ *   }
+ * }
+ *
+ * const DEMO = () => {
+ *   return (<h1>
+ *      <h2><Welcome /></h2>
+ *   <h1>)
+ * };
+ *
+ * 输出来的node中的owner为h2对应的FiberNode节点
+ *
+ * 对于self, 为调用React.createElement所在环境的this值，在class类组件中一般为类对象，在函数组件中为空。
+ *  类对象在在最后也会绑定一个对应的FiberNode节点，为当前组件对象会挂载到的dom节点对应的FiberNode节点，
+ *  所以才能判断他们是否一致吧。
+ *
  * @param {*} source An annotation object (added by a transpiler or otherwise)
  * indicating filename, line number, and/or other information.
+ * 一个注释对象，由转译器(如babel)提供.包含filename，line number和其他信息。
  * @internal
  */
 const ReactElement = function(type, key, ref, self, source, owner, props) {
+  // 元素对象
   const element = {
     // This tag allows us to uniquely identify this as a React Element
+    // react元素对象标记
     $$typeof: REACT_ELEMENT_TYPE,
 
     // Built-in properties that belong on the element
+    // 内建属性
     type: type,
     key: key,
     ref: ref,
     props: props,
 
     // Record the component responsible for creating this element.
+    // TODO: 该字段负责记录创建该元素的组件元素将会对挂载到的FiberNode节点对象
     _owner: owner,
   };
 
@@ -163,12 +201,19 @@ const ReactElement = function(type, key, ref, self, source, owner, props) {
     // an external backing store so that we can freeze the whole object.
     // This can be replaced with a WeakMap once they are implemented in
     // commonly used development environments.
+    // 注释翻译: 验证标志当前是可变的。我们把它放在一个外部后备存储器中，这样我们就可以冻结整个对象。
+    //  一旦它们在常用的开发环境中实现，就可以用WeakMap来代替。
+    // TODO: 初始化元素的_store属性, 一个额外的存储对象，当前只有validated这个标记
     element._store = {};
 
     // To make comparing ReactElements easier for testing purposes, we make
     // the validation flag non-enumerable (where possible, which should
     // include every environment we run tests in), so the test framework
     // ignores it.
+    // 翻译：为了使比较ReactElements更容易进行测试，
+    //  我们将验证标志设置为不可枚举（在可能的情况下，它应该包括我们在其中运行测试的每个环境），
+    //  因此测试框架会忽略它。
+    // 初始化元素中_store.validated
     Object.defineProperty(element._store, 'validated', {
       configurable: false,
       enumerable: false,
@@ -176,6 +221,8 @@ const ReactElement = function(type, key, ref, self, source, owner, props) {
       value: false,
     });
     // self and source are DEV only properties.
+    // 翻译： self和source时开发模式下才有的属性
+    // 初始化元素中的_self属性，并且后续不可变更
     Object.defineProperty(element, '_self', {
       configurable: false,
       enumerable: false,
@@ -184,12 +231,14 @@ const ReactElement = function(type, key, ref, self, source, owner, props) {
     });
     // Two elements created in two different places should be considered
     // equal for testing purposes and therefore we hide it from enumeration.
+    // 翻译：在测试场景中，在不同位置创建的两个元素应该时同等，所以将其设置为不可枚举(隐藏他)
     Object.defineProperty(element, '_source', {
       configurable: false,
       enumerable: false,
       writable: false,
       value: source,
     });
+    // 冻结整个element不可以变更
     if (Object.freeze) {
       Object.freeze(element.props);
       Object.freeze(element);
@@ -200,6 +249,8 @@ const ReactElement = function(type, key, ref, self, source, owner, props) {
 };
 
 /**
+ * TODO: 感觉是无用代码，根本就没有哪个地方用到了，可能是在做代码拆包过程中的遗留代码
+ *  跟./jsx/React.ReactJSXElement#jsx一摸一样
  * https://github.com/reactjs/rfcs/pull/107
  * @param {*} type
  * @param {object} props
@@ -264,6 +315,8 @@ export function jsx(type, config, maybeKey) {
 }
 
 /**
+ * TODO: 感觉是无用代码，根本就没有往外导出，可能是在做代码拆包过程中的遗留代码
+ *  跟./jsx/React.ReactJSXElement#jsxDev几乎一样
  * https://github.com/reactjs/rfcs/pull/107
  * @param {*} type
  * @param {object} props
@@ -341,6 +394,11 @@ export function jsxDEV(type, config, maybeKey, source, self) {
   );
 }
 
+// 创建并且返回一个自定类型的react元素
+// type: 组件类型，可以是一个原生的html标签字符串，如div,span;也可以是函数，
+//   代表一个React的组件类型，可以是React.FC函数或者React.Component的子类
+// config: 组件配置，简单理解就是组件的属性
+// children: 子节点，其他React.Element值，也是通过createElement创建的，该参数可以是不定参数，可以传递多个(注意不是数组)。
 /**
  * Create and return a new ReactElement of the given type.
  * See https://reactjs.org/docs/react-api.html#createelement
@@ -349,6 +407,7 @@ export function createElement(type, config, children) {
   let propName;
 
   // Reserved names are extracted
+  // 保存组件属性，从config中选出来的值
   const props = {};
 
   let key = null;
@@ -357,23 +416,40 @@ export function createElement(type, config, children) {
   let source = null;
 
   if (config != null) {
+    // 配置有没有包含ref
     if (hasValidRef(config)) {
       ref = config.ref;
 
       if (__DEV__) {
+        // TODO: 就某些情况下发出警告
+        // 百度翻译出来: 如果无法自动转换字符串引用，则发出警告
+        // 大概就是如果ref是一个字符串且无法转换，则发出警告
         warnIfStringRefCannotBeAutoConverted(config);
       }
     }
+    // 是否有key属性
     if (hasValidKey(config)) {
       key = '' + config.key;
     }
 
+    // 获取配置中的__self, __source属性
+    // TODO: 暂时不知道怎么用
+    // 经过研究，jsx生成的调用react.createElement是会传递这两个参数的
+    // __source: 当前文件信息，结构为{ fileName: string, lineNumber: string, columnNumber: string }
+    //      __source.fileName：组件所在文件绝对路径
+    //      __source.lineNumber: 调用语句所在行数
+    //      __source.columnNumber: 调用语句所在列数
+    // __self: 组件所在this对象，函数式组件没有，只有类组件有，一般指向当前类对象
     self = config.__self === undefined ? null : config.__self;
     source = config.__source === undefined ? null : config.__source;
     // Remaining properties are added to a new props object
+    // 将其他属性保存在一个新的对象中
+    // 会剔除上面说的__self，__source， key, ref, 其他都作为组件的属性
     for (propName in config) {
       if (
+        // 不config.hasOwnProperty是为了防空指针
         hasOwnProperty.call(config, propName) &&
+        // 剔除__self，__source， key, ref,
         !RESERVED_PROPS.hasOwnProperty(propName)
       ) {
         props[propName] = config[propName];
@@ -383,15 +459,19 @@ export function createElement(type, config, children) {
 
   // Children can be more than one argument, and those are transferred onto
   // the newly allocated props object.
+  // 子节点可能有多个
   const childrenLength = arguments.length - 2;
   if (childrenLength === 1) {
+    // 如果子节点只有一个，直接将子节点放到属性对象中
     props.children = children;
   } else if (childrenLength > 1) {
+    // 如果子节点是数组，那么子节点保存为一个数组
     const childArray = Array(childrenLength);
     for (let i = 0; i < childrenLength; i++) {
       childArray[i] = arguments[i + 2];
     }
     if (__DEV__) {
+      // 开发模式下，且当前浏览器支持冻结对象的话，冻结子节点对象数组
       if (Object.freeze) {
         Object.freeze(childArray);
       }
@@ -400,34 +480,45 @@ export function createElement(type, config, children) {
   }
 
   // Resolve default props
+  // 解析组件类型中的默认值
   if (type && type.defaultProps) {
+    // 将类型中的默认值设置到当前的组件属性对象，只有当属性对象中无值得时候才会设置
     const defaultProps = type.defaultProps;
     for (propName in defaultProps) {
       if (props[propName] === undefined) {
+        // 无值得时候才会设置
         props[propName] = defaultProps[propName];
       }
     }
   }
+  // 开发模式下，警告props对象中存在了key和ref的值(可能通过默认值设置了)
   if (__DEV__) {
     if (key || ref) {
+      // 组件的显示名逻辑： 如果是React组件类型的话，则一次获取类型的displayName，name值，没有则设置为Unknown；
+      // 如果不是类型，则直接显示类型值(此时应该是标签字符串，如div, span)
       const displayName =
         typeof type === 'function'
           ? type.displayName || type.name || 'Unknown'
           : type;
+      // 警告出现key属性,在获取时报错
       if (key) {
         defineKeyPropWarningGetter(props, displayName);
       }
+      // 警告出现ref属性,在获取时报错
       if (ref) {
         defineRefPropWarningGetter(props, displayName);
       }
     }
   }
+  // 新建一个React.Element对象
   return ReactElement(
     type,
     key,
     ref,
     self,
     source,
+    // TODO: 暂时还不知道具体内涵
+    // 感觉跟react渲染有关，react在整个渲染过程，都会维护好这个ReactCurrentOwner.current
     ReactCurrentOwner.current,
     props,
   );
