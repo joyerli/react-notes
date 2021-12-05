@@ -410,13 +410,18 @@ export function jsxWithValidationDynamic(type, props, key) {
   return jsxWithValidation(type, props, key, false);
 }
 
+// 开发模式下createElement，相比于生产环境，他多了更多的检验机制
 export function createElementWithValidation(type, props, children) {
+  // 首先验证是否是一个正确的元素类型
   const validType = isValidElementType(type);
 
   // We warn in this case but don't throw. We expect the element creation to
   // succeed and there will likely be errors in render.
+  // 翻译：在这种情况下，我们会发出警告，但不会抛出。我们希望元素创建成功，并且渲染中可能会出现错误
+  // 如果类型不符合期望，不会报错中断执行，而是发出警告。尽可能的尝试渲染。
   if (!validType) {
     let info = '';
+    // 生成类型是undefined或者是一个空对象的警告信息
     if (
       type === undefined ||
       (typeof type === 'object' &&
@@ -428,6 +433,7 @@ export function createElementWithValidation(type, props, children) {
         "it's defined in, or you might have mixed up default and named imports.";
     }
 
+    // 获取文件信息生成更好的提示信息
     const sourceInfo = getSourceInfoErrorAddendumForProps(props);
     if (sourceInfo) {
       info += sourceInfo;
@@ -435,11 +441,13 @@ export function createElementWithValidation(type, props, children) {
       info += getDeclarationErrorAddendum();
     }
 
+    // 获取类型的具体数据类型
     let typeString;
     if (type === null) {
       typeString = 'null';
     } else if (Array.isArray(type)) {
       typeString = 'array';
+    // 是一个react Element元素
     } else if (type !== undefined && type.$$typeof === REACT_ELEMENT_TYPE) {
       typeString = `<${getComponentName(type.type) || 'Unknown'} />`;
       info =
@@ -448,6 +456,7 @@ export function createElementWithValidation(type, props, children) {
       typeString = typeof type;
     }
 
+    // 在开发模式下，打出信息提示
     if (__DEV__) {
       console.error(
         'React.createElement: type is invalid -- expected a string (for ' +
@@ -459,10 +468,15 @@ export function createElementWithValidation(type, props, children) {
     }
   }
 
+  // 执行真正的createElement生成元素对象
   const element = createElement.apply(this, arguments);
 
   // The result can be nullish if a mock or a custom function is used.
   // TODO: Drop this when these are no longer allowed as the type argument.
+  // 翻译：如果使用模拟或自定义函数，则结果可能为空。
+  //  当不再允许将其作为类型参数时，请删除此选项。
+  // 如果element为空，则直接返回。其实当前的createElement在不报错的情况下，只有一个返回路径，该路径一定会返回元素对象，
+  //  所以应该是TODO里面提示，忘记删除无用代码了。
   if (element == null) {
     return element;
   }
@@ -472,15 +486,21 @@ export function createElementWithValidation(type, props, children) {
   // We don't want exception behavior to differ between dev and prod.
   // (Rendering will throw with a helpful message and as soon as the type is
   // fixed, the key warnings will appear.)
+  // 翻译：只有在正确的类型后，才会开始验证其他传入参数。至于为什么在执行createElement才验证，
+  //  是为了尽量维持跟生产环境一样的行为，并尽可以能尝试构建，如果构建成功了，也只是多一个警告信息而已。
+  // 上面的翻译增加了自己的理解，另外一个补充说明就是createElement基本传入任何参数都会构建成功，如果不符合标准，
+  //  在渲染的时候才会报错。所以有些本函数中的一些验证才尽可能的放在后面执行，且类型验证失败了也只是警告的原因。
   if (validType) {
     for (let i = 2; i < arguments.length; i++) {
       validateChildKeys(arguments[i], type);
     }
   }
 
+  // 如果是React.Fragment类型，验证他的属性
   if (type === REACT_FRAGMENT_TYPE) {
     validateFragmentProps(element);
   } else {
+    // 验证属性类型
     validatePropTypes(element);
   }
 

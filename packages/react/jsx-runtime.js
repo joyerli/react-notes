@@ -6,4 +6,8 @@
  *
  * @flow
  */
+/**
+ * react17的入口
+ * jsx, jsxs都是React17中替代React.createElement方案
+ */
 export {Fragment, jsx, jsxs} from './src/jsx/ReactJSX';
