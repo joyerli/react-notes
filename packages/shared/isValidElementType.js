@@ -28,13 +28,10 @@ import {
 import {enableScopeAPI} from './ReactFeatureFlags';
 
 // 判断参数是否是一个合法的元素类型
-<<<<<<< HEAD
 //  合法的元素类型应该：
 //    1. 是一个函数，代表类组件和函数组件
 //    2. 为一个字符串
-//    3. 内建类型
-=======
->>>>>>> 454a3a56c464ef94d6534d0256f14fcb475bae6c
+//    3. 内建类型(标识或者标识对象)
 export default function isValidElementType(type: mixed) {
   // 如果类型是一个字符串，或者是一个函数，则是合法的
   // 字符串是html标准标签，函数的话是React组件，注意js的类也是函数(构造函数)
