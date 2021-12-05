@@ -395,10 +395,12 @@ export function jsxDEV(type, config, maybeKey, source, self) {
 }
 
 // 创建并且返回一个自定类型的react元素
-// type: 组件类型，可以是一个原生的html标签字符串，如div,span;也可以是函数，
-//   代表一个React的组件类型，可以是React.FC函数或者React.Component的子类
+// type: 组件类型，一般是一个字符串或者一个函数。字符串为html标签字符串，如div,span;函数代表React组件
+//   可以是React.FC函数或者React.Component的子类。其他如React各种内建的组件或者一些包裹函数，如懒加载，缓存等。
 // config: 组件配置，简单理解就是组件的属性
 // children: 子节点，其他React.Element值，也是通过createElement创建的，该参数可以是不定参数，可以传递多个(注意不是数组)。
+// 注意，该函数基本不会对传入函数做什么验证，也就是基本传入任何参数，几乎都可以创建成功的元素对象，
+//  尽可能的创建一个react元素。检验元素对象是否符合标准都在渲染时去执行。
 /**
  * Create and return a new ReactElement of the given type.
  * See https://reactjs.org/docs/react-api.html#createelement
