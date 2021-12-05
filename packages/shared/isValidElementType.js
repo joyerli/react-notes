@@ -27,6 +27,11 @@ import {
 } from 'shared/ReactSymbols';
 import {enableScopeAPI} from './ReactFeatureFlags';
 
+// 判断参数是否是一个合法的元素类型
+//  合法的元素类型应该：
+//    1. 是一个函数，代表类组件和函数组件
+//    2. 为一个字符串
+//    3. 内建类型
 export default function isValidElementType(type: mixed) {
   if (typeof type === 'string' || typeof type === 'function') {
     return true;

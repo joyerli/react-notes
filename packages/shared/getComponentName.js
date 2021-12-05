@@ -41,12 +41,16 @@ function getContextName(type: ReactContext<any>) {
   return type.displayName || 'Context';
 }
 
+// 获取组件名
 function getComponentName(type: mixed): string | null {
+  // 如果传入空，则返回空
   if (type == null) {
     // Host root, text node or just invalid type.
     return null;
   }
   if (__DEV__) {
+    // 如果参数包含一个数字类型的tag值，则警告这是一个react的bug
+    // ???
     if (typeof (type: any).tag === 'number') {
       console.error(
         'Received an unexpected object in getComponentName(). ' +
@@ -54,12 +58,15 @@ function getComponentName(type: mixed): string | null {
       );
     }
   }
+  // 如果是一个组件，则有设置displayName则返回displayName，没有则有name返回name,还没有则返回空
   if (typeof type === 'function') {
     return (type: any).displayName || type.name || null;
   }
+  // 如果是html元素名，则直接返回
   if (typeof type === 'string') {
     return type;
   }
+  // 如果是一些内建的具有特别含义的元素对象，则返回对应的api描述
   switch (type) {
     case REACT_FRAGMENT_TYPE:
       return 'Fragment';
@@ -74,7 +81,10 @@ function getComponentName(type: mixed): string | null {
     case REACT_SUSPENSE_LIST_TYPE:
       return 'SuspenseList';
   }
+  // 如果是一个对象
   if (typeof type === 'object') {
+    // 有特定的$$typeof值，判断看是什么内建对象标识；
+    // 一般react包裹函数返回的都是一个对象作为元素的类型。
     switch (type.$$typeof) {
       case REACT_CONTEXT_TYPE:
         const context: ReactContext<any> = (type: any);
@@ -100,6 +110,7 @@ function getComponentName(type: mixed): string | null {
       }
     }
   }
+  // 如果不符合，则返回空
   return null;
 }
 

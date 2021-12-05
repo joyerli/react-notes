@@ -41,8 +41,10 @@ function hasValidRef(config) {
   return config.ref !== undefined;
 }
 
+// 是否有合法的key
 function hasValidKey(config) {
   if (__DEV__) {
+    // 特殊情况: 如果是属性集中包含key，但有警告设置，那么就当作是没有(返回false)
     if (hasOwnProperty.call(config, 'key')) {
       const getter = Object.getOwnPropertyDescriptor(config, 'key').get;
       if (getter && getter.isReactWarning) {
@@ -50,6 +52,7 @@ function hasValidKey(config) {
       }
     }
   }
+  // 判断是否有key
   return config.key !== undefined;
 }
 
@@ -206,6 +209,12 @@ const ReactElement = function(type, key, ref, self, source, owner, props) {
  * @param {object} props
  * @param {string} key
  */
+// 创建jsx标签函数，代替react.createElement函数。
+
+// 跟createElement的区别:
+// api不同：createElement参数列表type, props, children, 而jsx是type, props和maybeKey，两者区别是children传递不同。
+//   createElement的子节点列表是作为单独的参数，jsx是作为props中的一个属性。其他jsx中支持maybeKey，来支持key的更加标准化。
+
 export function jsx(type, config, maybeKey) {
   let propName;
 
@@ -265,12 +274,18 @@ export function jsx(type, config, maybeKey) {
 }
 
 /**
+ * 开发模式下的jsx函数，jsx创建一个react元素的工具函数。协助编译器将jsx语法转义成创建react元素的函数
+ * jsx函数是react.createElement的优化版本，专供编译器使用
+ *
+ * TODO: 研究jsxDEV跟jsx有什么区别
+ *
  * https://github.com/reactjs/rfcs/pull/107
- * @param {*} type
- * @param {object} props
- * @param {string} key
+ * @param {*} type  元素类型，为组件或者html标签名或者内建标识和内建对象标识
+ * @param {object} props 属性集合
+ * @param {string} maybeKey 可能的key，单独解析出来，单独设置，因为有特殊情况
  */
 export function jsxDEV(type, config, maybeKey, source, self) {
+  // 只在开发模式生效
   if (__DEV__) {
     let propName;
 
@@ -286,10 +301,20 @@ export function jsxDEV(type, config, maybeKey, source, self) {
     // but as an intermediary step, we will use jsxDEV for everything except
     // <div {...props} key="Hi" />, because we aren't currently able to tell if
     // key is explicitly declared to be undefined or not.
+
+    // 翻译： 当前，key可以通过prop 传递。如果key是显式传递（如 <div {...props} key="Hi" /> 或者 <div key="Hi" {...props} />），
+    // 这会导致一些潜在问题。后续想放弃key的传递, 但当前作为中间支持，由于无法明确的判断key是否被定义了，
+    // 会对除<div {...props} key="Hi" />外的使用方式使用jsxDEV，
+
+    // 意思react以后计划放弃通过{...props}支持key值的传递, key必须显式的在当前层设置，不会渗透到下一层。
+    // 当前为了兼容老代码，才有下面的写法。
+
+    // 如果有maybeKey， 也就是<div key="Hi" {...props} />中设置的key
     if (maybeKey !== undefined) {
       key = '' + maybeKey;
     }
 
+    // 如果属性集中有设置key, 则使用属性集中的值
     if (hasValidKey(config)) {
       key = '' + config.key;
     }
