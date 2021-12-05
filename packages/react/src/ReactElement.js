@@ -192,6 +192,7 @@ const ReactElement = function(type, key, ref, self, source, owner, props) {
     props: props,
 
     // Record the component responsible for creating this element.
+    // 翻译：记录负责创建此元素的组件。
     // TODO: 该字段负责记录创建该元素的组件元素将会对挂载到的FiberNode节点对象
     _owner: owner,
   };
@@ -203,7 +204,8 @@ const ReactElement = function(type, key, ref, self, source, owner, props) {
     // commonly used development environments.
     // 注释翻译: 验证标志当前是可变的。我们把它放在一个外部后备存储器中，这样我们就可以冻结整个对象。
     //  一旦它们在常用的开发环境中实现，就可以用WeakMap来代替。
-    // TODO: 初始化元素的_store属性, 一个额外的存储对象，当前只有validated这个标记
+    // 初始化元素的_store属性, 一个额外的存储对象，当前只有validated这个标记。
+    //  用于在开发模式下，标记这个元素是否经过数据校验。
     element._store = {};
 
     // To make comparing ReactElements easier for testing purposes, we make
