@@ -99,6 +99,7 @@ function defineRefPropWarningGetter(props, displayName) {
   });
 }
 
+// 判断传递的ref如果是字符串，则打印警告
 function warnIfStringRefCannotBeAutoConverted(config) {
   if (__DEV__) {
     if (
@@ -424,10 +425,15 @@ export function createElement(type, config, children) {
     if (hasValidRef(config)) {
       ref = config.ref;
 
+      // 对 __DEV__ 做一个说明
+      // 后续在源码其他很多地方的都有使用if(__DEV__) { //... }这样的使用
+      // 这是react代码编译的会做的一些处理，是babel特定插件的锚点
+      // 在构建脚本构建react的开发版本时，
+      // 代码if(__DEV__) { console.log(12); }会变成{ console.log(12); }
+      // 在生产环境代码编译时，会直接被删除
+
       if (__DEV__) {
-        // TODO: 就某些情况下发出警告
-        // 百度翻译出来: 如果无法自动转换字符串引用，则发出警告
-        // 大概就是如果ref是一个字符串且无法转换，则发出警告
+        // 如果ref是一个字符串且无法转换，则发出警告
         warnIfStringRefCannotBeAutoConverted(config);
       }
     }

@@ -50,6 +50,7 @@ export function precacheFiberNode(
   (node: any)[internalInstanceKey] = hostInst;
 }
 
+// 标记容器元素为root元素：将fiber跟节点存储到当前dom根容器元素中
 export function markContainerAsRoot(hostRoot: Fiber, node: Container): void {
   node[internalContainerInstanceKey] = hostRoot;
 }
@@ -58,6 +59,7 @@ export function unmarkContainerAsRoot(node: Container): void {
   node[internalContainerInstanceKey] = null;
 }
 
+// TODO: 是否是通过ReactDOM.createRoot()创建的节点，通过一个属性标记来判断
 export function isContainerMarkedAsRoot(node: Container): boolean {
   return !!node[internalContainerInstanceKey];
 }
@@ -148,7 +150,10 @@ export function getClosestInstanceFromNode(targetNode: Node): null | Fiber {
  * Given a DOM node, return the ReactDOMComponent or ReactDOMTextComponent
  * instance, or null if the node was not rendered by this React.
  */
+// 翻译: 给定一个 DOM 节点，返回 ReactDOMComponent 或 ReactDOMTextComponent 实例，如果节点没有被这个 React 渲染，则返回 null。
+// 返回dom节点对应的fiber节点对象
 export function getInstanceFromNode(node: Node): Fiber | null {
+  // 从子节点中获取是否是react节点
   const inst =
     (node: any)[internalInstanceKey] ||
     (node: any)[internalContainerInstanceKey];

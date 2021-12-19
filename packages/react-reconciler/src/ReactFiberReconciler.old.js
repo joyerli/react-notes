@@ -238,12 +238,14 @@ function findHostInstanceWithWarning(
   return findHostInstance(component);
 }
 
+// 创建一个节点容器，当前为Fiber的跟节点
 export function createContainer(
   containerInfo: Container,
   tag: RootTag,
   hydrate: boolean,
   hydrationCallbacks: null | SuspenseHydrationCallbacks,
 ): OpaqueRoot {
+  // TODO: 创建一个Fiber根节点
   return createFiberRoot(containerInfo, tag, hydrate, hydrationCallbacks);
 }
 

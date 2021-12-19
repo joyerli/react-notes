@@ -7,6 +7,7 @@
  * @flow
  */
 
+// 当前版本enableNewReconciler为false, 也就是不开启新的调和器
 import {enableNewReconciler} from 'shared/ReactFeatureFlags';
 
 // The entry file imports either the old or new version of the reconciler.
