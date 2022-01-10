@@ -17,6 +17,7 @@ export const enableDebugTracing = false;
 
 // Adds user timing marks for e.g. state updates, suspense, and work loop stuff,
 // for an experimental scheduling profiler tool.
+// 翻译：添加用户计时标记，例如 状态更新、悬念和工作循环的东西，用于实验性调度分析器工具。
 export const enableSchedulingProfiler = __PROFILE__ && __EXPERIMENTAL__;
 
 // Helps identify side effects in render-phase lifecycle hooks and setState
@@ -31,12 +32,18 @@ export const replayFailedUnitOfWorkWithInvokeGuardedCallback = __DEV__;
 export const warnAboutDeprecatedLifecycles = true;
 
 // Gather advanced timing metrics for Profiler subtrees.
+// 翻译:收集 Profiler 子树的高级计时指标
+
+// 是否开启Profiler计时器
 export const enableProfilerTimer = __PROFILE__;
 
 // Record durations for commit and passive effects phases.
 export const enableProfilerCommitHooks = false;
 
 // Trace which interactions trigger each commit.
+// 翻译:跟踪哪些交互触发了每个提交。
+
+// 是否开启Scheduler调度器调试
 export const enableSchedulerTracing = __PROFILE__;
 
 // SSR experiments
@@ -73,6 +80,11 @@ export const warnAboutUnmockedScheduler = false;
 // the user to see a loading state.
 // Also allows hydration callbacks to fire when a dehydrated boundary gets
 // hydrated or deleted.
+// 翻译：向 suspense 添加回调属性以通知当前在更新队列中的 Promise。
+//  这允许报告和跟踪导致用户看到加载状态的原因。
+//  还允许在脱水边界被水合或删除时触发水合回调。
+
+// 是否开启加载器回调事件
 export const enableSuspenseCallback = false;
 
 // Part of the simplification of React.createElement so we can eventually move
@@ -133,6 +145,7 @@ export const decoupleUpdatePriorityFromScheduler = false;
 
 export const enableDiscreteEventFlushingChange = false;
 
+// 启用根侦听器
 export const enableEagerRootListeners = true;
 
 export const enableDoubleInvokingEffects = false;

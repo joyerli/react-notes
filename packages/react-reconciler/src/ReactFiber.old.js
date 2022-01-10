@@ -95,6 +95,7 @@ import {
 
 export type {Fiber};
 
+// hasBadMapPolyfill： 是否错误的Map垫片，保证Object.preventExtensions符合期望所用
 let hasBadMapPolyfill;
 
 if (__DEV__) {
@@ -113,47 +114,92 @@ if (__DEV__) {
 
 let debugCounter = 1;
 
+// FiberNode类
 function FiberNode(
+  // fiber标签，可以理解为类型，如有react组件类型，html文本类型等
+  //  当前阅读传递过来的参数是HostRoot
   tag: WorkTag,
+  // TODO:
+  // 当前阅读过来传递为undefined
   pendingProps: mixed,
+  // TODO:
+  // 当前阅读过来传递为undefined
   key: null | string,
+  // 模式，多种模式的集合
+  // => NoMode
   mode: TypeOfMode,
 ) {
   // Instance
+  // 实例相关
+
+  // fiber标签，可以理解为类型，如有react组件类型，html文本类型等
+  //  当前阅读传递过来的参数是HostRoot
   this.tag = tag;
+  // TODO:
+  // 当前阅读过来传递为undefined
   this.key = key;
+  // TODO:
   this.elementType = null;
+  // TODO:
   this.type = null;
+  // TODO:
+  // => 一个FiberRoot对象
   this.stateNode = null;
 
   // Fiber
+  // Fiber相关
+
+  // TODO:
   this.return = null;
+  // TODO:
   this.child = null;
+  // TODO:
   this.sibling = null;
+  // TODO:
   this.index = 0;
 
+  // TODO:
   this.ref = null;
 
+  // TODO:
+  // 当前阅读过来传递为undefined
   this.pendingProps = pendingProps;
+  // TODO:
   this.memoizedProps = null;
+  // TODO:
+  // 更新队列， 数据结构为: { baseState, firstBaseUpdate, lastBaseUpdate, shared, effects }
   this.updateQueue = null;
+  // TODO:
   this.memoizedState = null;
+  // TODO:
   this.dependencies = null;
 
+  // 模式，多种模式的集合
+  // => NoMode
   this.mode = mode;
 
   // Effects
+  // 副作用相关
+
+  // TODO:
   this.flags = NoFlags;
+  // TODO:
   this.nextEffect = null;
 
+  // TODO:
   this.firstEffect = null;
+  // TODO:
   this.lastEffect = null;
 
+  // TODO:
   this.lanes = NoLanes;
+  // TODO:
   this.childLanes = NoLanes;
 
+  // TODO:
   this.alternate = null;
 
+  // 是否开启Profiler测量器计时器
   if (enableProfilerTimer) {
     // Note: The following is done to avoid a v8 performance cliff.
     //
@@ -167,27 +213,55 @@ function FiberNode(
     // Learn more about this here:
     // https://github.com/facebook/react/issues/14365
     // https://bugs.chromium.org/p/v8/issues/detail?id=8538
+
+    // 翻译：
+    // 注意：执行以下操作是为了避免 v8 性能悬崖。
+    // 将下面的字段初始化为 smis 并稍后用 double 值更新它们将导致 Fibers 最终具有单独的形状。
+    // 此行为/错误与 Object.preventExtension() 有关。 幸运的是，这只影响 DEV 构建。
+    // 不幸的是，它使 React 对于某些应用程序变得异常缓慢。 要解决此问题，请使用双精度值初始化以下字段。
+    //
+
+    // TODO:
     this.actualDuration = Number.NaN;
+    // TODO:
     this.actualStartTime = Number.NaN;
+    // TODO:
     this.selfBaseDuration = Number.NaN;
+    // TODO:
     this.treeBaseDuration = Number.NaN;
 
     // It's okay to replace the initial doubles with smis after initialization.
     // This won't trigger the performance cliff mentioned above,
     // and it simplifies other profiler code (including DevTools).
+    // 翻译：
+    // 初始化后用 smis 代替最初的双打就可以了。
+    //  这不会触发上面提到的性能悬崖，并且它简化了其他分析器代码（包括 DevTools）。
+
+    // TODO:
     this.actualDuration = 0;
+    // TODO:
     this.actualStartTime = -1;
+    // TODO:
     this.selfBaseDuration = 0;
+    // TODO:
     this.treeBaseDuration = 0;
   }
 
   if (__DEV__) {
     // This isn't directly used but is handy for debugging internals:
+    // 这不是直接使用的，但对于调试内部很方便：
+
+    // TODO:
     this._debugID = debugCounter++;
+    // TODO:
     this._debugSource = null;
+    // TODO:
     this._debugOwner = null;
+    // TODO:
     this._debugNeedsRemount = false;
+    // TODO:
     this._debugHookTypes = null;
+    // hasBadMapPolyfill： 是否错误的Map垫片，保证Object.preventExtensions符合期望所用
     if (!hasBadMapPolyfill && typeof Object.preventExtensions === 'function') {
       Object.preventExtensions(this);
     }
@@ -207,13 +281,33 @@ function FiberNode(
 //    is faster.
 // 5) It should be easy to port this to a C struct and keep a C implementation
 //    compatible.
+// 翻译：
+// 这是一个构造函数，而不是 POJO 构造函数，仍然请确保我们执行以下操作：
+// 1) 任何人都不应在此添加任何实例方法。 实例方法何时被优化可能更难预测，并且它们几乎从未在静态编译器中正确内联。
+// 2) 没有人应该依赖 `instanceof Fiber` 进行类型测试。 我们应该始终知道它何时是Fiber。
+// 3) 我们可能想尝试使用数字键，因为它们在非 JIT 环境中更容易优化。
+// 4) 如果更快的话，我们可以轻松地从构造函数转到 createFiber 对象字面量。
+// 5) 将其移植到 C 结构并保持 C 实现兼容应该很容易。
+
+// 上面的翻译是优化提示
+
 const createFiber = function(
+  // fiber标签，可以理解为类型，如有react组件类型，html文本类型等
+  //  当前阅读传递过来的参数是HostRoot
   tag: WorkTag,
+  // TODO:
+  // 当前阅读过来传递为undefined
   pendingProps: mixed,
+  // TODO:
+  // 当前阅读过来传递为undefined
   key: null | string,
+  // 模式，多种模式的集合
+  // => NoMode
   mode: TypeOfMode,
 ): Fiber {
   // $FlowFixMe: the shapes are exact here but Flow doesn't like constructors
+  // 翻译: 这里的形状是精确的，但 Flow 不喜欢构造函数
+
   return new FiberNode(tag, pendingProps, key, mode);
 };
 
@@ -428,16 +522,24 @@ export function resetWorkInProgress(workInProgress: Fiber, renderLanes: Lanes) {
   return workInProgress;
 }
 
-export function createHostRootFiber(tag: RootTag): Fiber {
+// 创建root对应的fiber节点对象
+export function createHostRootFiber(
+  // root标签，可以理解为root类型，有LegacyRoot(旧模式)，BlockingRoot(阻塞模式)，ConcurrentRoot(并发模式)// root标签，可以理解为root类型，有LegacyRoot(旧模式)，BlockingRoot(阻塞模式)，ConcurrentRoot(并发模式)
+  // 当前阅读情况下有 LegacyRoot
+  tag: RootTag): Fiber {
+  // 得到当前需要启用的模式(位运算)
+  // TODO: 每种模式的作用
   let mode;
   if (tag === ConcurrentRoot) {
     mode = ConcurrentMode | BlockingMode | StrictMode;
   } else if (tag === BlockingRoot) {
     mode = BlockingMode | StrictMode;
   } else {
+    // 当前是这种模式
     mode = NoMode;
   }
 
+  // 是否开启Profiler测量即时器并且存在开发工具
   if (enableProfilerTimer && isDevToolsPresent) {
     // Always collect profile timings when DevTools are present.
     // This enables DevTools to start capturing timing at any point–
@@ -445,6 +547,7 @@ export function createHostRootFiber(tag: RootTag): Fiber {
     mode |= ProfileMode;
   }
 
+  // 创建一个fiber节点
   return createFiber(HostRoot, null, null, mode);
 }
 

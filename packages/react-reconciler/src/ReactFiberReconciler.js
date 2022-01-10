@@ -98,6 +98,8 @@ import {
 export const createContainer = enableNewReconciler
   ? createContainer_new
   : createContainer_old;
+// 更新根节点(如react-dom render绑定的根dom节点)
+// 当前版本enableNewReconciler不开启，为false, 所以关键是学习updateContainer_old
 export const updateContainer = enableNewReconciler
   ? updateContainer_new
   : updateContainer_old;

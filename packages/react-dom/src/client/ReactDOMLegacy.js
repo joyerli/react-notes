@@ -122,8 +122,13 @@ function getReactRootElementInContainer(container: any) {
   }
 }
 
+// 是否为传统启发式渲染
+// container： 挂在dom节点
 function shouldHydrateDueToLegacyHeuristic(container) {
+  // 从挂在节点中获取所需的子元素
   const rootElement = getReactRootElementInContainer(container);
+  // 是否符合标记
+  // 容器元素为普通的元素节点，且有data-reactroot属性，则是传统启发式渲染
   return !!(
     rootElement &&
     rootElement.nodeType === ELEMENT_NODE &&
@@ -133,12 +138,13 @@ function shouldHydrateDueToLegacyHeuristic(container) {
 
 // 从一个dom节点容器创建一个root实例
 function legacyCreateRootFromDOMContainer(
+  // 挂在dom节点
   container: Container,
   // react.hydrate, ssr渲染
   forceHydrate: boolean,
 ): RootType {
   // 是否是服务器渲染
-  // TODO: 了解shouldHydrateDueToLegacyHeuristic
+  // Heuristic 启发式
   const shouldHydrate =
     forceHydrate || shouldHydrateDueToLegacyHeuristic(container);
   // First clear any existing content.
@@ -173,7 +179,8 @@ function legacyCreateRootFromDOMContainer(
     }
   }
   if (__DEV__) {
-    // 调用 ReactDOM.render() 来混合服务器渲染的标记将在 React v18 中停止工作。 如果您希望 React 附加到服务器 HTML，请将 ReactDOM.render() 调用替换为 ReactDOM.hydrate()。
+    // 调用 ReactDOM.render() 来混合服务器渲染的标记将在 React v18 中停止工作。
+    //  如果您希望 React 附加到服务器 HTML，请将 ReactDOM.render() 调用替换为 ReactDOM.hydrate()。
     // 如果使用render渲染ssr, 则打印警告信息
     if (shouldHydrate && !forceHydrate && !warnedAboutHydrateAPI) {
       warnedAboutHydrateAPI = true;
@@ -186,6 +193,7 @@ function legacyCreateRootFromDOMContainer(
   }
 
   // 创建一个传统类型的root实例
+  // FIXME: 下沉点
   return createLegacyRoot(
     container,
     shouldHydrate
@@ -210,9 +218,8 @@ function warnOnInvalidCallback(callback: mixed, callerName: string): void {
 }
 
 // 挂载节点
-// TODO: 下一级函数还没有阅读
 function legacyRenderSubtreeIntoContainer(
-  // 父组件
+  // 父组件, 当前web dom 下为空
   parentComponent: ?React$Component<any, any>,
   // 子节点
   children: ReactNodeList,
@@ -230,7 +237,7 @@ function legacyRenderSubtreeIntoContainer(
     warnOnInvalidCallback(callback === undefined ? null : callback, 'render');
   }
 
-  // TODO: Without `any` type, Flow says "Property cannot be accessed on any
+  // Without `any` type, Flow says "Property cannot be accessed on any
   // member of intersection type." Whyyyyyy.
 
   // 上面的注释一个来自react团队的抱怨，抱怨如果不给container._reactRootContainer声明any就会导致错误提示。
@@ -263,9 +270,9 @@ function legacyRenderSubtreeIntoContainer(
 
     // 翻译: 不应批处理初始挂载。
 
-    // TODO: 不批量更新
+    // 不批量更新， unbatchedUpdates会在执行updateContainer之前进行一些状态初始化，执行后，进行一些清理操作。
     unbatchedUpdates(() => {
-      // 更新容器
+      // 更新容器, TODO: updateContainer
       updateContainer(children, fiberRoot, parentComponent, callback);
     });
   } else {
@@ -287,6 +294,7 @@ function legacyRenderSubtreeIntoContainer(
   }
 
   // 返回公共根节点实例，该操作下后续迭代可能会被优化，应该使用回调函数获取该信息
+  TODO: getPublicRootInstance
   return getPublicRootInstance(fiberRoot);
 }
 

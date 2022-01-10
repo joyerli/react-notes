@@ -639,6 +639,7 @@ export function higherLanePriority(
   return a !== NoLanePriority && a > b ? a : b;
 }
 
+// 创建一个lane通道数组， TotalLanes为31， 也就是创建一个数组，数字的初始值是initial
 export function createLaneMap<T>(initial: T): LaneMap<T> {
   // Intentionally pushing one by one.
   // https://v8.dev/blog/elements-kinds#avoid-creating-holes

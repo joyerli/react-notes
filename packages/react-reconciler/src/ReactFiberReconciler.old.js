@@ -130,19 +130,27 @@ if (__DEV__) {
   didWarnAboutFindNodeInStrictMode = {};
 }
 
+// TODO: 获取上下文
 function getContextForSubtree(
   parentComponent: ?React$Component<any, any>,
 ): Object {
+  // 如果没有父节点，则返回空上下文,
   if (!parentComponent) {
     return emptyContextObject;
   }
 
+  // 获取当前父组件对应的fiber节点，TODO: 其实是从 parentComponent._reactInternals
   const fiber = getInstance(parentComponent);
+  // TODO: 获取某个上下文
   const parentContext = findCurrentUnmaskedContext(fiber);
 
+  // 如果是泪组件创建的
   if (fiber.tag === ClassComponent) {
+    // 获取组件类型
     const Component = fiber.type;
+    // TODO: 是否是传统的上下文提供
     if (isLegacyContextProvider(Component)) {
+      // TODO: processChildContext
       return processChildContext(fiber, Component, parentContext);
     }
   }
@@ -238,42 +246,62 @@ function findHostInstanceWithWarning(
   return findHostInstance(component);
 }
 
-// 创建一个节点容器，当前为Fiber的跟节点
+// 创建一个Fiber根节点(也被称作为容器)
 export function createContainer(
+  // 挂在dom节点
   containerInfo: Container,
+  // root标签，可以理解为root类型，有LegacyRoot(旧模式)，BlockingRoot(阻塞模式)，ConcurrentRoot(并发模式)// root标签，可以理解为root类型，有LegacyRoot(旧模式)，BlockingRoot(阻塞模式)，ConcurrentRoot(并发模式)
+  // 当前阅读情况下有 LegacyRoot
   tag: RootTag,
+  // 是否是ssr渲染
   hydrate: boolean,
+  // ssr渲染回调事件对象，有onHydrated, onDeleted等
   hydrationCallbacks: null | SuspenseHydrationCallbacks,
 ): OpaqueRoot {
-  // TODO: 创建一个Fiber根节点
+  // 创建一个Fiber根节点
   return createFiberRoot(containerInfo, tag, hydrate, hydrationCallbacks);
 }
 
+// 更新容器
 export function updateContainer(
+  // react元素
   element: ReactNodeList,
+  // 当前fiber容器，为createContainer创建的根节点
   container: OpaqueRoot,
+  // 副组件，web情况,当前版本下为null
   parentComponent: ?React$Component<any, any>,
+  // 执行后的回调函数
   callback: ?Function,
 ): Lane {
   if (__DEV__) {
+    // TODO: onScheduleRoot
     onScheduleRoot(container, element);
   }
+  // TODO: 从createContainer中阅读current
   const current = container.current;
+  // 获取事件时间, TODO: requestEventTime的真实意思
   const eventTime = requestEventTime();
   if (__DEV__) {
     // $FlowExpectedError - jest isn't a global, and isn't recognized outside of tests
+    // 翻译：jest 不是全局的，并且在测试之外不被识别
     if ('undefined' !== typeof jest) {
+      // TODO: 下面语句的含义
       warnIfUnmockedScheduler(current);
       warnIfNotScopedWithMatchingAct(current);
     }
   }
+  // TODO: 理解lane含义
+  // 临时可以理解为当前渲染的通道，为了支持后续的并发渲染
   const lane = requestUpdateLane(current);
 
+  // 调试性能分析工具支持
   if (enableSchedulingProfiler) {
     markRenderScheduled(lane);
   }
 
+  // 获取上下文，当前就是emptyContextObject，因为web dom模式下parentComponent为空
   const context = getContextForSubtree(parentComponent);
+  // TODO:
   if (container.context === null) {
     container.context = context;
   } else {
@@ -281,9 +309,13 @@ export function updateContainer(
   }
 
   if (__DEV__) {
+    // 当前如果有组件在渲染，则警告提示， 一般都是死循环渲染导致的，比如render，componentDidUpdate中有改变状态陷入死循环
     if (
+      // 当前是有有Fiber在渲染
       ReactCurrentFiberIsRendering &&
+      // 当前渲染的Fiber的节点不为空
       ReactCurrentFiberCurrent !== null &&
+      // 避免多次提示
       !didWarnAboutNestedUpdates
     ) {
       didWarnAboutNestedUpdates = true;
@@ -294,17 +326,24 @@ export function updateContainer(
           'Check the render method of %s.',
         getComponentName(ReactCurrentFiberCurrent.type) || 'Unknown',
       );
+      // 翻译: 渲染方法应该是 props 和 state 的纯函数； 不允许从渲染触发嵌套组件更新。
+      //   如有必要，在componentDidUpdate中触发嵌套更新。检查%s的render方法
     }
   }
 
+  // TODO: 创建更新对象，一个记录更新的数据结构
   const update = createUpdate(eventTime, lane);
   // Caution: React DevTools currently depends on this property
   // being called "element".
+  // 翻译: React DevTools 目前依赖于这个被称为“element”的属性。
+  // 给DevTools调试用
   update.payload = {element};
 
+  // 设置回调函数
   callback = callback === undefined ? null : callback;
   if (callback !== null) {
     if (__DEV__) {
+      // 在开发模式下，如果callback不是函数，则发出警告
       if (typeof callback !== 'function') {
         console.error(
           'render(...): Expected the last optional `callback` argument to be a ' +
@@ -316,7 +355,9 @@ export function updateContainer(
     update.callback = callback;
   }
 
+  // 进入更新队列， TODO: 查看底层
   enqueueUpdate(current, update);
+  // 使用fiber更新调度器， TODO: 查看底层
   scheduleUpdateOnFiber(current, lane, eventTime);
 
   return lane;

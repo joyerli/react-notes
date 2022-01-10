@@ -319,17 +319,38 @@ const listeningMarker =
     .toString(36)
     .slice(2);
 
-export function listenToAllSupportedEvents(rootContainerElement: EventTarget) {
+// 监听所有支持的事件
+export function listenToAllSupportedEvents(
+  // 监听所有事件的容器dom节点
+  // => 挂在节点
+  rootContainerElement: EventTarget) {
+  // 是否启用容器上监听事件，当前固定为true
   if (enableEagerRootListeners) {
+    // 如果已经添加了监听了，直接结束流程
     if ((rootContainerElement: any)[listeningMarker]) {
       // Performance optimization: don't iterate through events
       // for the same portal container or root node more than once.
       // TODO: once we remove the flag, we may be able to also
       // remove some of the bookkeeping maps used for laziness.
+
+      // 翻译：
+      // 性能优化：不要多次遍历同一个门户容器或根节点的事件。
+      // TODO: 一旦我们删除了标志，我们也许还可以删除一些用于懒惰的簿记地图。
+
       return;
     }
+    // 进行已经处理后的标记，避免重复处理
     (rootContainerElement: any)[listeningMarker] = true;
+    // 对所有当前支持的原生事件进行处理
     allNativeEvents.forEach(domEventName => {
+      // 是否需要委派，下面的代码这样写更好
+      // listenToNativeEvent(
+      //   domEventName,
+      //   nonDelegatedEvents.has(domEventName),
+      //   ((rootContainerElement: any): Element),
+      //   null,
+      // );
+      // 也就是 isCapturePhaseListener = nonDelegatedEvents.has(domEventName)
       if (!nonDelegatedEvents.has(domEventName)) {
         listenToNativeEvent(
           domEventName,
@@ -338,6 +359,7 @@ export function listenToAllSupportedEvents(rootContainerElement: EventTarget) {
           null,
         );
       }
+      // FIXME: 下沉
       listenToNativeEvent(
         domEventName,
         true,
@@ -348,22 +370,37 @@ export function listenToAllSupportedEvents(rootContainerElement: EventTarget) {
   }
 }
 
+// 监听一个原生事件
 export function listenToNativeEvent(
+  // 事件名字
   domEventName: DOMEventName,
+  // 是否捕获事件，捕获的事件，将不会委派，也就是说在dom节点的祖宗节点上将不能捕获到，也就是停止冒泡
   isCapturePhaseListener: boolean,
+  // react挂在的容器dom节点
   rootContainerElement: EventTarget,
+  // 目标元素
+  // => null
   targetElement: Element | null,
+  // 事件系统标记，为一些二进制值，进行多标记计算
+  // => 0
   eventSystemFlags?: EventSystemFlags = 0,
 ): void {
+  // 目标dom节点，因为rootContainerElement不一定是事件初恋的节点
   let target = rootContainerElement;
 
   // selectionchange needs to be attached to the document
   // otherwise it won't capture incoming events that are only
   // triggered on the document directly.
+
+  // 翻译
+  // selectionchange需要附加到文档，否则它不会捕获仅在文档上直接触发的传入事件。
+
+  // selectionchange 只能在document节点上监听，所以需要特殊处理
   if (
     domEventName === 'selectionchange' &&
     (rootContainerElement: any).nodeType !== DOCUMENT_NODE
   ) {
+    // 定位到document节点上去
     target = (rootContainerElement: any).ownerDocument;
   }
   // If the event can be delegated (or is capture phase), we can
@@ -371,8 +408,12 @@ export function listenToNativeEvent(
   // register the event to the target element and mark it as
   // a non-delegated event.
   if (
+    // 传入了targetElement参数
     targetElement !== null &&
+    // 没有停止冒泡
     !isCapturePhaseListener &&
+    // 不需要委托
+    // 当前阅读下来， nonDelegatedEvents.has(domEventName) === isCapturePhaseListener, 所以不会进入这个分支
     nonDelegatedEvents.has(domEventName)
   ) {
     // For all non-delegated events, apart from scroll, we attach
@@ -384,29 +425,56 @@ export function listenToNativeEvent(
     // TODO: ideally, we'd eventually apply the same logic to all
     // events from the nonDelegatedEvents list. Then we can remove
     // this special case and use the same logic for all events.
+
+    // 翻译：
+    // 对于所有非委托事件，除了滚动之外，我们将它们的事件侦听器附加到它们的事件触发的相应元素上。
+    // 这意味着我们可以跳过这一步，因为之前已经添加了事件监听器。
+    // 但是，我们对滚动事件进行特殊处理，因为实际情况是任何元素都可以滚动。
+    // TODO:
+    // 理想情况下，我们最终会对 nonDelegatedEvents 列表中的所有事件应用相同的逻辑。
+    // 然后我们可以删除这种特殊情况并对所有事件使用相同的逻辑。
+
+    // 只处理滚动事件
     if (domEventName !== 'scroll') {
       return;
     }
+    // eventSystemFlags 中添加 不需要委托的标记
     eventSystemFlags |= IS_NON_DELEGATED;
+    // 重置target
     target = targetElement;
   }
+  // 得到目标dom节点上已有的监听器集
+  // TODO: getEventListenerSet
+  // FIXME: 下沉
   const listenerSet = getEventListenerSet(target);
+  // 得到当前事件对应监听器的key
+  // TODO: getEventListenerSet
   const listenerSetKey = getListenerSetKey(
     domEventName,
     isCapturePhaseListener,
   );
   // If the listener entry is empty or we should upgrade, then
   // we need to trap an event listener onto the target.
+
+  // 翻译：
+  // 如果侦听器条目为空或者我们应该升级，那么我们需要将事件侦听器捕获到目标上。
+
+  // 如果元素上的监听器中不包含当前的事件对应需要的key，则监听
+  // 防止重复添加
   if (!listenerSet.has(listenerSetKey)) {
+    // 添加标记
     if (isCapturePhaseListener) {
       eventSystemFlags |= IS_CAPTURE_PHASE;
     }
+    // 添加事件监听器
+    // TODO: addTrappedEventListener
     addTrappedEventListener(
       target,
       domEventName,
       eventSystemFlags,
       isCapturePhaseListener,
     );
+    // 保存这个添加的监听器，防止重复添加
     listenerSet.add(listenerSetKey);
   }
 }

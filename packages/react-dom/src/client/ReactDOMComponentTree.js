@@ -51,7 +51,13 @@ export function precacheFiberNode(
 }
 
 // 标记容器元素为root元素：将fiber跟节点存储到当前dom根容器元素中
-export function markContainerAsRoot(hostRoot: Fiber, node: Container): void {
+export function markContainerAsRoot(
+  // 一个Fiber对象，当前是一个Fiber Root对象对应的Fiber对象
+  hostRoot: Fiber,
+  // 挂在dom节点
+  node: Container): void {
+  // internalContainerInstanceKey为__reactContainer$加一个随机数
+  // 将当前fiber对象存储在dom节点对象上
   node[internalContainerInstanceKey] = hostRoot;
 }
 
@@ -201,6 +207,7 @@ export function updateFiberProps(
   (node: any)[internalPropsKey] = props;
 }
 
+// FIXME: READ_CURRENT
 export function getEventListenerSet(node: EventTarget): Set<string> {
   let elementListenerSet = (node: any)[internalEventHandlersKey];
   if (elementListenerSet === undefined) {

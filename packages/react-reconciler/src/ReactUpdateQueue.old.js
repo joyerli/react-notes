@@ -149,8 +149,13 @@ if (__DEV__) {
   };
 }
 
-export function initializeUpdateQueue<State>(fiber: Fiber): void {
+// 初始化更新队列
+export function initializeUpdateQueue<State>(
+  // 一个Fiber对象
+  fiber: Fiber): void {
+  // 创建一个更新队列数据结构
   const queue: UpdateQueue<State> = {
+    // => null
     baseState: fiber.memoizedState,
     firstBaseUpdate: null,
     lastBaseUpdate: null,
@@ -159,6 +164,7 @@ export function initializeUpdateQueue<State>(fiber: Fiber): void {
     },
     effects: null,
   };
+  // 初始化fiber的updateQueue属性
   fiber.updateQueue = queue;
 }
 

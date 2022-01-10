@@ -731,7 +731,7 @@ function runActTests(label, render, unmount, rerender) {
 
         it('triggers fallbacks if available', async () => {
           if (label !== 'legacy mode') {
-            // FIXME: Support for Blocking* and Concurrent Mode were
+            // Support for Blocking* and Concurrent Mode were
             // intentionally removed from the public version of `act`. It will
             // be added back in a future major version, before Blocking and and
             // Concurrent Mode are officially released. Consider disabling all

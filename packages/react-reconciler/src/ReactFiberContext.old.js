@@ -44,18 +44,25 @@ let previousContext: Object = emptyContextObject;
 function getUnmaskedContext(
   workInProgress: Fiber,
   Component: Function,
+  // 如果提供者确实推送了自己的上下文
   didPushOwnContextIfProvider: boolean,
 ): Object {
+  // 当前disableLegacyContext写死为false, 禁用传统的上下文
   if (disableLegacyContext) {
     return emptyContextObject;
   } else {
+    // TODO: didPushOwnContextIfProvider为true时的场景
     if (didPushOwnContextIfProvider && isContextProvider(Component)) {
       // If the fiber is a context provider itself, when we read its context
       // we may have already pushed its own child context on the stack. A context
       // provider should not "see" its own child context. Therefore we read the
       // previous (parent) context instead for a context provider.
+      // 翻译: 如果fiber本身是一个上下文提供者，当我们读取它的上下文时，
+      //    我们可能已经将它自己的子上下文推送到堆栈上。 上下文提供者不应该“看到”它自己的子上下文。
+      //   因此，我们为上下文提供者读取了先前的（父）上下文。
       return previousContext;
     }
+    // TODO: contextStackCursor的含义
     return contextStackCursor.current;
   }
 }
@@ -287,6 +294,7 @@ function invalidateContextProvider(
   }
 }
 
+// 获取当前节点的xx上下文
 function findCurrentUnmaskedContext(fiber: Fiber): Object {
   if (disableLegacyContext) {
     return emptyContextObject;

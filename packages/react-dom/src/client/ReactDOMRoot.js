@@ -67,12 +67,17 @@ function ReactDOMRoot(container: Container, options: void | RootOptions) {
 
 // 阻塞类型react root实例类
 function ReactDOMBlockingRoot(
+  // 挂在dom节点
   container: Container,
   // root标签，可以理解为root类型，有LegacyRoot(旧模式)，BlockingRoot(阻塞模式)，ConcurrentRoot(并发模式)
+  // 当前阅读情况下有 LegacyRoot
   tag: RootTag,
+  // 选项
+  // 当前阅读过来可能值为{hydrate: true}和undefined
   options: void | RootOptions,
 ) {
   // root实例
+  // FIXME: 下沉点
   this._internalRoot = createRootImpl(container, tag, options);
 }
 
@@ -122,12 +127,15 @@ ReactDOMRoot.prototype.unmount = ReactDOMBlockingRoot.prototype.unmount = functi
   });
 };
 
-// 创建一个root实例
+// 创建一个fiber root实例
 function createRootImpl(
-  // 根dom节点，作为整个react的容器dom节点
+  // 挂在dom节点
   container: Container,
-  // root标签，可以理解为root类型，有LegacyRoot(旧模式)，BlockingRoot(阻塞模式)，ConcurrentRoot(并发模式)
+  // root标签，可以理解为root类型，有LegacyRoot(旧模式)，BlockingRoot(阻塞模式)，ConcurrentRoot(并发模式)// root标签，可以理解为root类型，有LegacyRoot(旧模式)，BlockingRoot(阻塞模式)，ConcurrentRoot(并发模式)
+  // 当前阅读情况下有 LegacyRoot
   tag: RootTag,
+  // 选项
+  // 当前阅读过来可能值为{hydrate: true}和undefined
   options: void | RootOptions,
 ) {
   // Tag is either LegacyRoot or Concurrent Root
@@ -135,29 +143,38 @@ function createRootImpl(
 
   // 是否是ssr渲染
   const hydrate = options != null && options.hydrate === true;
+  // ssr渲染回调事件对象，有onHydrated, onDeleted等
   const hydrationCallbacks =
     (options != null && options.hydrationOptions) || null;
+  // ssr渲染的可变数据源列表
   const mutableSources =
     (options != null &&
       options.hydrationOptions != null &&
       options.hydrationOptions.mutableSources) ||
     null;
-  // 创建一个节点容器，实际为Fiber根节点
+  // 创建一个Fiber Root对象，这个对象会作为容器
   const root = createContainer(container, tag, hydrate, hydrationCallbacks);
-  // 标记容器元素为root元素：将fiber跟节点存储到当前dom根容器元素中
+  // 标记容器（Fiber Root对象）对应的fiber对象为root：将fiber节点对象存储到当前dom根容器元素中
   markContainerAsRoot(root.current, container);
   // 容器dom元素节点类型
   const containerNodeType = container.nodeType;
 
-  // 当前版本enableEagerRootListeners为true, 开启root监听模式，也就是不使用document的实践坚挺，react17的特性
+  // 下面的if else相关都是进行事件绑定处理
+
+  // 当前版本enableEagerRootListeners为true, 开启root监听模式，也就是不使用document的对象监听，为react17的特性
   if (enableEagerRootListeners) {
-    // 计算承载事件的容器dome元素
+    // 计算承载事件的dom元素（为注释文本节点时，用的是他的父节点）
     const rootContainerElement =
       container.nodeType === COMMENT_NODE ? container.parentNode : container;
-    // TODO: listenToAllSupportedEvents  TODO: --READ_THIS--
+    // 在当前容器dom节点监听所有需要支持的事件
+    // FIXME: 下沉
     listenToAllSupportedEvents(rootContainerElement);
   } else {
+    // 老版本模式(<17.0.0)
+
+    // 如果是新模式下（支持并发模式）下的ssr渲染
     if (hydrate && tag !== LegacyRoot) {
+      // 获取document节点
       const doc =
         containerNodeType === DOCUMENT_NODE
           ? container
@@ -166,11 +183,18 @@ function createRootImpl(
       // with the hoisted containerNodeType. If we inline
       // it, then Flow doesn't complain. We intentionally
       // hoist it to reduce code-size.
+
+      // 翻译：我们需要强制转换，因为 Flow 不适用于提升的 containerNodeType。 如果我们内联它，那么 Flow 不会抱怨。 我们有意提升它以减少代码大小。
+
+      // 对代码中doc: any的类型为any的说明
+
+      // TODO: eagerlyTrapReplayableEvents 捕获事件
       eagerlyTrapReplayableEvents(container, ((doc: any): Document));
     } else if (
       containerNodeType !== DOCUMENT_FRAGMENT_NODE &&
       containerNodeType !== DOCUMENT_NODE
     ) {
+      // TODO: 确保监听onMouseEnter
       ensureListeningTo(container, 'onMouseEnter', null);
     }
   }
@@ -214,10 +238,14 @@ export function createBlockingRoot(
 
 // 创建一个传统类型的root实例，
 export function createLegacyRoot(
+  // 挂在dom节点
   container: Container,
+  // 选项
+  // 当前阅读过来可能值为{hydrate: true}和undefined
   options?: RootOptions,
 ): RootType {
   // 新建一个阻塞类型的root穿线
+  // FIXME: 下沉点
   return new ReactDOMBlockingRoot(container, LegacyRoot, options);
 }
 
