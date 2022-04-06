@@ -131,6 +131,7 @@ export const disableModulePatternComponents = false;
 export const warnUnstableRenderSubtreeIntoContainer = false;
 
 // Support legacy Primer support on internal FB www
+// 翻译：在脸书内部网站上支持旧版 Primer
 export const enableLegacyFBSupport = false;
 
 // Updates that occur in the render phase are not officially supported. But when

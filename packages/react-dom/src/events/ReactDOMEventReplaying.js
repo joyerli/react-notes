@@ -120,6 +120,8 @@ type QueuedHydrationTarget = {|
 |};
 const queuedExplicitHydrationTargets: Array<QueuedHydrationTarget> = [];
 
+// 是否有有离散事件队列
+// 判断一个全局离散事件队列的长度
 export function hasQueuedDiscreteEvents(): boolean {
   return queuedDiscreteEvents.length > 0;
 }
@@ -172,6 +174,7 @@ const continuousReplayableEvents: Array<DOMEventName> = [
   'lostpointercapture',
 ];
 
+// 是可重放的离散事件
 export function isReplayableDiscreteEvent(eventType: DOMEventName): boolean {
   return discreteReplayableEvents.indexOf(eventType) > -1;
 }
@@ -203,6 +206,7 @@ export function eagerlyTrapReplayableEvents(
   }
 }
 
+// 创建可以放入队列的可重播事件结构
 function createQueuedReplayableEvent(
   blockedOn: null | Container | SuspenseInstance,
   domEventName: DOMEventName,
@@ -219,13 +223,24 @@ function createQueuedReplayableEvent(
   };
 }
 
+// 将当前的离散事件放入队列中，等待后续执行
 export function queueDiscreteEvent(
+  // 主要为元素节点和注释节点
+  // TODO: blockedOn的含义
+  // => null
   blockedOn: null | Container | SuspenseInstance,
+  // 事件名
   domEventName: DOMEventName,
+  // 事件系统标记，为一些二进制值，进行多标记计算
+  // => 0
   eventSystemFlags: EventSystemFlags,
+  // 需要添加时间的dom节点
+  // => 基本为react挂在的节点
   targetContainer: EventTarget,
+  // 原生事件对象
   nativeEvent: AnyNativeEvent,
 ): void {
+  // 创建可以放入队列的可重播事件结构
   const queuedEvent = createQueuedReplayableEvent(
     blockedOn,
     domEventName,
@@ -233,26 +248,43 @@ export function queueDiscreteEvent(
     targetContainer,
     nativeEvent,
   );
+  // 防区全局离散事件队列
   queuedDiscreteEvents.push(queuedEvent);
+  // 是否enableSelectiveHydration， ssr场景开启
   if (enableSelectiveHydration) {
+    // 队列中只有一个
     if (queuedDiscreteEvents.length === 1) {
       // If this was the first discrete event, we might be able to
       // synchronously unblock it so that preventDefault still works.
+
+      // 翻译：
+      // 如果这是第一个离散事件，我们也许可以同步解除对它的阻塞，这样 preventDefault 仍然有效。
+
+      // TODO: blockedOn的含义
       while (queuedEvent.blockedOn !== null) {
+        // 从dom节点中获取fiber对象
         const fiber = getInstanceFromNode(queuedEvent.blockedOn);
+        // 没有对应的fiber对象，直接中断循环
         if (fiber === null) {
           break;
         }
+        // 尝试同步的ssr渲染
         attemptSynchronousHydration(fiber);
+        // 再一次判断， 查看是否渲染完毕
         if (queuedEvent.blockedOn === null) {
           // We got unblocked by hydration. Let's try again.
+          // 翻译： 渲染畅通无阻，在尝试一次
+          // 重复未阻止的事件
           replayUnblockedEvents();
           // If we're reblocked, on an inner boundary, we might need
           // to attempt hydrating that one.
+          // 翻译: 如果我们在内部边界被重新阻塞，我们可能需要尝试为那个边界渲染。
           continue;
         } else {
           // We're still blocked from hydration, we have to give up
           // and replay later.
+
+          // 翻译： 我们仍然无法渲染，我们必须放弃并稍后重试。
           break;
         }
       }

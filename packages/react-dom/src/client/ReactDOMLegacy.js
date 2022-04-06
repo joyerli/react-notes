@@ -193,7 +193,7 @@ function legacyCreateRootFromDOMContainer(
   }
 
   // 创建一个传统类型的root实例
-  // FIXME: 下沉点
+  // FIXME: 下沉 1
   return createLegacyRoot(
     container,
     shouldHydrate

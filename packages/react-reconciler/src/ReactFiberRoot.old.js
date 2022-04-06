@@ -39,7 +39,7 @@ function FiberRootNode(
   // root标签，可以理解为root类型，有LegacyRoot(旧模式)，BlockingRoot(阻塞模式)，ConcurrentRoot(并发模式)// root标签，可以理解为root类型，有LegacyRoot(旧模式)，BlockingRoot(阻塞模式)，ConcurrentRoot(并发模式)
   // 当前阅读情况下有 LegacyRoot
   this.tag = tag;
-  // 挂在dom节点
+  // 挂载的dom节点
   this.containerInfo = containerInfo;
   // TODO:
   this.pendingChildren = null;

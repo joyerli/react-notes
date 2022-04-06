@@ -30,57 +30,90 @@ import {enableFundamentalAPI} from 'shared/ReactFeatureFlags';
 
 const ReactCurrentOwner = ReactSharedInternals.ReactCurrentOwner;
 
+// 获取最近的被挂载的fiber对象
 export function getNearestMountedFiber(fiber: Fiber): null | Fiber {
   let node = fiber;
   let nearestMounted = fiber;
+
+  // 拿到当前节点所在的节点树的最顶层
+
+  // 如果没有下一个节点树
   if (!fiber.alternate) {
     // If there is no alternate, this might be a new tree that isn't inserted
     // yet. If it is, then it will have a pending insertion effect on it.
+
+    // 翻译：如果没有替代，这可能是尚未插入的新树。 如果是，那么它将对其产生待处理的插入效果。
     let nextNode = node;
     do {
       node = nextNode;
+      // 如果是ssr渲染(Hydrating)或者放置(Placement)操作
       if ((node.flags & (Placement | Hydrating)) !== NoFlags) {
         // This is an insertion or in-progress hydration. The nearest possible
         // mounted fiber is the parent but we need to continue to figure out
         // if that one is still mounted.
+
+        // 翻译：这是插入或正在进行的hydration。 最近可能安装的fiber是父节点，但我们需要继续确定该fiber是否仍然安装。
+
+        // 最近的被挂载的节点为当前节点的父节点，并接受下一轮的是否挂载的检测
         nearestMounted = node.return;
       }
+      // 往父节点遍历
       nextNode = node.return;
     } while (nextNode);
-  } else {
+  } /* 如果有下一个节点树 */else {
+    // 拿到最外层的node节点
     while (node.return) {
       node = node.return;
     }
   }
+  // 判断最顶层的节点是否是HostRoot
   if (node.tag === HostRoot) {
     // TODO: Check if this was a nested HostRoot when used with
     // renderContainerIntoSubtree.
+
+    // 翻译：与 renderContainerIntoSubtree 一起使用时检查这是否是嵌套的 HostRoot
+
     return nearestMounted;
   }
   // If we didn't hit the root, that means that we're in an disconnected tree
   // that has been unmounted.
+
+  // 如果我们没有击中根，这意味着我们处于一个已卸载的断开连接的树中
   return null;
 }
 
+// 从fiber对象中获取Suspense实例(一个注释节点)
 export function getSuspenseInstanceFromFiber(
   fiber: Fiber,
 ): null | SuspenseInstance {
+  // 需要当前fiber对应的组件是一个Suspense组件
   if (fiber.tag === SuspenseComponent) {
+    // 缓存的组件的状态值
     let suspenseState: SuspenseState | null = fiber.memoizedState;
+    // 如果咩有状态值
     if (suspenseState === null) {
+      // 那么可能需要从下一个节点树中去拿
+
+      // 获取当前节点下个阶段渲染的节点对象
       const current = fiber.alternate;
       if (current !== null) {
+        // 获取节点中保存的组件状态
         suspenseState = current.memoizedState;
       }
     }
+    // 如果状态存在，返回对应的dom节点，即为注释节点
     if (suspenseState !== null) {
       return suspenseState.dehydrated;
     }
   }
+  // 需要当前fiber对应的组件不是一个Suspense组件，则直接返回null
   return null;
 }
 
+// 获取当前根fiber对象(rootFiber)对应的dom节点
+// 如果传入fiber对象不是跟fiber节点对象，则返回null
 export function getContainerFromFiber(fiber: Fiber): null | Container {
+  // 如果是HostRoot标签的fiber节点，则获取其stateNode(FiberRoot对象)的containerInfo信息
   return fiber.tag === HostRoot
     ? (fiber.stateNode.containerInfo: Container)
     : null;

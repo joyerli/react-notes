@@ -17,30 +17,60 @@ import {enableDiscreteEventFlushingChange} from 'shared/ReactFeatureFlags';
 // everything is batched by default. We'll then have a similar API to opt-out of
 // scheduled work and instead do synchronous work.
 
+// 谷歌翻译：
+// 当我们没有对渲染器的引用时，用作调用 batchedUpdates 的一种方式。
+// 例如当我们调度事件或第三方库需要调用 batchedUpdates 时。
+//最终，当默认情况下对所有内容进行批处理时，此 API 将消失。 然后，我们将有一个类似的 API 来选择退出计划的工作，而是进行同步工作。
+
 // Defaults
+// 批量更新事件的默认实现函数
 let batchedUpdatesImpl = function(fn, bookkeeping) {
+  // 直接调用
   return fn(bookkeeping);
 };
+
+// 离散更新的实现，当前就是直接调用事件
+// 允许事件插件做调整
 let discreteUpdatesImpl = function(fn, a, b, c, d) {
   return fn(a, b, c, d);
 };
+
+// 刷新离散的事件更新的默认实现
+// 默认为空函数，但允许事件插件做扩展
 let flushDiscreteUpdatesImpl = function() {};
+// 批量更新事件
+// 允许事件插件做改变
 let batchedEventUpdatesImpl = batchedUpdatesImpl;
 
 let isInsideEventHandler = false;
 let isBatchingEventUpdates = false;
 
+// 完成事件操作
 function finishEventHandler() {
   // Here we wait until all updates have propagated, which is important
   // when using controlled components within layers:
   // https://github.com/facebook/react/issues/1698
   // Then we restore state of any controlled component.
+
+  // 翻译：
+  // 在这里，我们等到所有更新都传播完，
+  // 这在层内使用受控组件时很重要：https://github.com/facebook/react/issues/1698，
+  // 然后我们恢复任何受控组件的状态。
+
+  // 受控的组件对应的fiber对象是否有待更新
   const controlledComponentsHavePendingUpdates = needsStateRestore();
   if (controlledComponentsHavePendingUpdates) {
     // If a controlled event was fired, we may need to restore the state of
     // the DOM node back to the controlled value. This is necessary when React
     // bails out of the update without touching the DOM.
+
+    // 翻译:
+    // 如果触发了受控事件，我们可能需要将 DOM 节点的状态恢复为受控值。 当 React 在不接触 DOM 的情况下退出更新时，这是必要的。
+
+    // 刷新零散的事件更新
+    // 当前就是空函数
     flushDiscreteUpdatesImpl();
+    // 恢复需要恢复的dom节点的对应组件的fiber对象的状态
     restoreStateIfNeeded();
   }
 }
@@ -60,29 +90,49 @@ export function batchedUpdates(fn, bookkeeping) {
   }
 }
 
+// 批量事件更新
 export function batchedEventUpdates(fn, a, b) {
+  // 是否已经在批量更新的过程中
   if (isBatchingEventUpdates) {
     // If we are currently inside another batch, we need to wait until it
     // fully completes before restoring state.
+
+    // 如果我们当前在另一个批次中，我们需要等到它完全完成才能恢复状态。
+
+    // 如果已经处于批量更新的过程中，则直接调用函数
     return fn(a, b);
   }
+  // 标记进入批量更新
   isBatchingEventUpdates = true;
   try {
+    // 调用批量事件实现函数
+    // 默认情况下也是直接调用
     return batchedEventUpdatesImpl(fn, a, b);
   } finally {
+    // 标记退出进入批量更新
     isBatchingEventUpdates = false;
+    // 完成事件处理
     finishEventHandler();
   }
 }
 
+// 离散更新
+// 离散的含义可以初步理解为非批量
 export function discreteUpdates(fn, a, b, c, d) {
+  // 保存之前是否在处理事件
   const prevIsInsideEventHandler = isInsideEventHandler;
+  // 标记正在处理事件
   isInsideEventHandler = true;
   try {
+    // 执行离散更新实现
+    // 当前就是直接调用
     return discreteUpdatesImpl(fn, a, b, c, d);
   } finally {
+    // 恢复isInsideEventHandler 为之前的值
     isInsideEventHandler = prevIsInsideEventHandler;
+    // 如果还在处理事件(之前就在处理其他的事件操作)
     if (!isInsideEventHandler) {
+      // 完成事件操作
       finishEventHandler();
     }
   }

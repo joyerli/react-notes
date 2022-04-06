@@ -7,8 +7,10 @@
  * @flow
  */
 
+// canUseDOM 当前环境是否能使用dom
 import {canUseDOM} from 'shared/ExecutionEnvironment';
 
+// 标记浏览器是否支持addEventListener的passive选项
 export let passiveBrowserEventsSupported = false;
 
 // Check if browser support events with passive listeners

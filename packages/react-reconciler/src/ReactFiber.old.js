@@ -142,18 +142,18 @@ function FiberNode(
   this.elementType = null;
   // TODO:
   this.type = null;
-  // TODO:
-  // => 一个FiberRoot对象
+  // 实例对象, 如类组件的实例、原生 dom 实例, 而 function 组件没有实例, 因此该属性是空
+  // rootFiber对应的值是FiberRoot对象
   this.stateNode = null;
 
   // Fiber
-  // Fiber相关
+  // 构建Fiber树相关
 
-  // TODO:
+  // 指向自己的父级 Fiber 对象， Fiber | null
   this.return = null;
-  // TODO:
+  // 指向自己第一个子Fiber 对象, Fiber | null
   this.child = null;
-  // TODO:
+  // 指向自己下一个兄弟Fiber 对象，Fiber | null
   this.sibling = null;
   // TODO:
   this.index = 0;
@@ -169,7 +169,7 @@ function FiberNode(
   // TODO:
   // 更新队列， 数据结构为: { baseState, firstBaseUpdate, lastBaseUpdate, shared, effects }
   this.updateQueue = null;
-  // TODO:
+  // 缓存的组件的状态值
   this.memoizedState = null;
   // TODO:
   this.dependencies = null;
@@ -181,7 +181,8 @@ function FiberNode(
   // Effects
   // 副作用相关
 
-  // TODO:
+  // 标签
+  // 标记不同的组件动作。值列表为./ReactFiberFlags.js中的值
   this.flags = NoFlags;
   // TODO:
   this.nextEffect = null;
@@ -196,7 +197,9 @@ function FiberNode(
   // TODO:
   this.childLanes = NoLanes;
 
-  // TODO:
+  // react采用双缓存技术，会等待下一个fiber节点树完全构建好了，才会替换
+  // 在替换的过程中，会在当前树的根fiber节点上维护alternate指针
+  // TODO:只会rootFiber中维护这个指针
   this.alternate = null;
 
   // 是否开启Profiler测量器计时器

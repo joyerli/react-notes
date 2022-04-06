@@ -77,7 +77,7 @@ function ReactDOMBlockingRoot(
   options: void | RootOptions,
 ) {
   // root实例
-  // FIXME: 下沉点
+  // FIXME: 下沉 3
   this._internalRoot = createRootImpl(container, tag, options);
 }
 
@@ -167,7 +167,7 @@ function createRootImpl(
     const rootContainerElement =
       container.nodeType === COMMENT_NODE ? container.parentNode : container;
     // 在当前容器dom节点监听所有需要支持的事件
-    // FIXME: 下沉
+    // FIXME: 下沉 4
     listenToAllSupportedEvents(rootContainerElement);
   } else {
     // 老版本模式(<17.0.0)
@@ -245,7 +245,7 @@ export function createLegacyRoot(
   options?: RootOptions,
 ): RootType {
   // 新建一个阻塞类型的root穿线
-  // FIXME: 下沉点
+  // FIXME: 下沉 2
   return new ReactDOMBlockingRoot(container, LegacyRoot, options);
 }
 

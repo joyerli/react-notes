@@ -813,31 +813,58 @@ export function getNextHydratableInstanceAfterSuspenseInstance(
 // Returns the SuspenseInstance if this node is a direct child of a
 // SuspenseInstance. I.e. if its previous sibling is a Comment with
 // SUSPENSE_x_START_DATA. Otherwise, null.
+
+// 翻译：
+// 如果此节点是 SuspenseInstance 的直接子节点，则返回 SuspenseInstance。
+// IE。 如果它的前一个兄弟是带有 SUSPENSE_x_START_DATA 的注释节点。 其他为空。
+
+// 得到当前节点的所在的Suspense实例(一个注释节点)
+
+// Suspense的实现使用文档注释实现
+// 如: 组件这样写
+// <Suspense><div /></Suspense>
+// 可能生成的dom结构为：
+// <!-- $ --><div /><!-- /$ -->
+// 如果当前传入的是div这个节点，那么返回的就是<!-- $ -->这个注释节点
 export function getParentSuspenseInstance(
+  // dom节点
   targetInstance: Node,
 ): null | SuspenseInstance {
+  // 当前节点的前一个兄弟节点
   let node = targetInstance.previousSibling;
   // Skip past all nodes within this suspense boundary.
   // There might be nested nodes so we need to keep track of how
   // deep we are and only break out when we're back on top.
+  // 跳过此suspense边界内的所有节点。 可能存在嵌套节点，因此我们需要跟踪我们的深度，并且只有在我们回到顶部时才会返回。
+
+  // 机率嵌套深度
   let depth = 0;
+  //
   while (node) {
+    // 如果为注释节点
     if (node.nodeType === COMMENT_NODE) {
+      // 获取节点中的数据
       const data = ((node: any).data: string);
+      // 如果存储的数据是符合SUSPENSE特定的字符
       if (
         data === SUSPENSE_START_DATA ||
         data === SUSPENSE_FALLBACK_START_DATA ||
         data === SUSPENSE_PENDING_START_DATA
       ) {
+        // 且深度是0
         if (depth === 0) {
+          // 返回这个节点
           return ((node: any): SuspenseInstance);
         } else {
+          // 如果不是, depth 减少
           depth--;
         }
-      } else if (data === SUSPENSE_END_DATA) {
+      } /* 如果是结束的注释节点 */else if (data === SUSPENSE_END_DATA) {
+        // 递归深度增加
         depth++;
       }
     }
+    // 持续循环
     node = node.previousSibling;
   }
   return null;
