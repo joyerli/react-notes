@@ -91,6 +91,7 @@ export type NativeMethods = {
   ...
 };
 
+// HostComponent: 原生组件
 export type HostComponent<T> = AbstractComponent<T, $ReadOnly<NativeMethods>>;
 
 type SecretInternalsType = {

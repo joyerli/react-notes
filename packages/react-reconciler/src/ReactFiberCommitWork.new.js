@@ -312,7 +312,9 @@ function commitBeforeMutationLifeCycles(
       }
       return;
     }
+    // HostComponent: 原生组件
     case HostComponent:
+    // HostText: 原生文本
     case HostText:
     case HostPortal:
     case IncompleteClassComponent:
@@ -614,6 +616,7 @@ function recursivelyCommitLayoutEffects(
             commitLayoutEffectsForHostRoot(finishedWork);
             break;
           }
+          // HostComponent: 原生组件
           case HostComponent: {
             commitLayoutEffectsForHostComponent(finishedWork);
             break;
@@ -624,6 +627,7 @@ function recursivelyCommitLayoutEffects(
           }
           case FundamentalComponent:
           case HostPortal:
+          // HostText: 原生文本
           case HostText:
           case IncompleteClassComponent:
           case LegacyHiddenComponent:
@@ -879,6 +883,7 @@ function commitLayoutEffectsForHostRoot(finishedWork: Fiber) {
     let instance = null;
     if (finishedWork.child !== null) {
       switch (finishedWork.child.tag) {
+        // HostComponent: 原生组件
         case HostComponent:
           instance = getPublicInstance(finishedWork.child.stateNode);
           break;
@@ -912,6 +917,7 @@ function hideOrUnhideAllChildren(finishedWork, isHidden) {
     // children to find all the terminal nodes.
     let node: Fiber = finishedWork;
     while (true) {
+      // HostComponent: 原生组件
       if (node.tag === HostComponent) {
         const instance = node.stateNode;
         if (isHidden) {
@@ -919,6 +925,7 @@ function hideOrUnhideAllChildren(finishedWork, isHidden) {
         } else {
           unhideInstance(node.stateNode, node.memoizedProps);
         }
+      // HostText: 原生文本
       } else if (node.tag === HostText) {
         const instance = node.stateNode;
         if (isHidden) {
@@ -960,6 +967,7 @@ function commitAttachRef(finishedWork: Fiber) {
     const instance = finishedWork.stateNode;
     let instanceToUse;
     switch (finishedWork.tag) {
+      // HostComponent: 原生组件
       case HostComponent:
         instanceToUse = getPublicInstance(instance);
         break;
@@ -1058,6 +1066,7 @@ function commitUnmount(
       }
       return;
     }
+    // HostComponent: 原生组件
     case HostComponent: {
       safelyDetachRef(current, nearestMountedAncestor);
       return;
@@ -1197,7 +1206,9 @@ function commitContainer(finishedWork: Fiber) {
 
   switch (finishedWork.tag) {
     case ClassComponent:
+      // HostComponent: 原生组件
     case HostComponent:
+    // HostText: 原生文本
     case HostText:
     case FundamentalComponent: {
       return;
@@ -1238,6 +1249,7 @@ function getHostParentFiber(fiber: Fiber): Fiber {
 
 function isHostParent(fiber: Fiber): boolean {
   return (
+    // HostComponent: 原生组件
     fiber.tag === HostComponent ||
     fiber.tag === HostRoot ||
     fiber.tag === HostPortal
@@ -1263,7 +1275,9 @@ function getHostSibling(fiber: Fiber): ?Instance {
     node.sibling.return = node.return;
     node = node.sibling;
     while (
+      // HostComponent: 原生组件
       node.tag !== HostComponent &&
+      // HostText: 原生文本s
       node.tag !== HostText &&
       node.tag !== DehydratedFragment
     ) {
@@ -1351,6 +1365,8 @@ function insertOrAppendPlacementNodeIntoContainer(
   parent: Container,
 ): void {
   const {tag} = node;
+  // HostComponent: 原生组件
+  // HostText: 原生文本
   const isHost = tag === HostComponent || tag === HostText;
   if (isHost || (enableFundamentalAPI && tag === FundamentalComponent)) {
     const stateNode = isHost ? node.stateNode : node.stateNode.instance;
@@ -1382,6 +1398,8 @@ function insertOrAppendPlacementNode(
   parent: Instance,
 ): void {
   const {tag} = node;
+  // HostComponent: 原生组件
+  // HostText: 原生文本
   const isHost = tag === HostComponent || tag === HostText;
   if (isHost || (enableFundamentalAPI && tag === FundamentalComponent)) {
     const stateNode = isHost ? node.stateNode : node.stateNode.instance;
@@ -1436,6 +1454,7 @@ function unmountHostComponents(
         );
         const parentStateNode = parent.stateNode;
         switch (parent.tag) {
+          // HostComponent: 原生组件
           case HostComponent:
             currentParent = parentStateNode;
             currentParentIsContainer = false;
@@ -1459,6 +1478,8 @@ function unmountHostComponents(
       currentParentIsValid = true;
     }
 
+    // HostComponent: 原生组件
+    // HostText: 原生文本
     if (node.tag === HostComponent || node.tag === HostText) {
       commitNestedUnmounts(
         finishedRoot,
@@ -1710,6 +1731,7 @@ function commitWork(current: Fiber | null, finishedWork: Fiber): void {
     case ClassComponent: {
       return;
     }
+    // HostComponent: 原生组件
     case HostComponent: {
       const instance: Instance = finishedWork.stateNode;
       if (instance != null) {
@@ -1736,6 +1758,7 @@ function commitWork(current: Fiber | null, finishedWork: Fiber): void {
       }
       return;
     }
+    // HostText: 原生文本
     case HostText: {
       invariant(
         finishedWork.stateNode !== null,

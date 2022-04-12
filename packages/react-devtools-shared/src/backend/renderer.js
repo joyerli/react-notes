@@ -179,9 +179,11 @@ export function getInternalReactConstants(
       ForwardRef: 11,
       Fragment: 7,
       FunctionComponent: 0,
+      // 原生组件
       HostComponent: 5,
       HostPortal: 4,
       HostRoot: 3,
+      // HostText: 原生文本
       HostText: 6,
       IncompleteClassComponent: 17,
       IndeterminateComponent: 2,
@@ -207,9 +209,11 @@ export function getInternalReactConstants(
       ForwardRef: 11,
       Fragment: 7,
       FunctionComponent: 0,
+      // 原生组件
       HostComponent: 5,
       HostPortal: 4,
       HostRoot: 3,
+      // HostText: 原生文本
       HostText: 6,
       IncompleteClassComponent: 17,
       IndeterminateComponent: 2,
@@ -235,9 +239,11 @@ export function getInternalReactConstants(
       ForwardRef: 13,
       Fragment: 9,
       FunctionComponent: 0,
+      // 原生组件
       HostComponent: 7,
       HostPortal: 6,
       HostRoot: 5,
+      // HostText: 原生文本
       HostText: 8,
       IncompleteClassComponent: -1, // Doesn't exist yet
       IndeterminateComponent: 4,
@@ -263,9 +269,11 @@ export function getInternalReactConstants(
       ForwardRef: 14,
       Fragment: 10,
       FunctionComponent: 1,
+      // 原生组件
       HostComponent: 5,
       HostPortal: 4,
       HostRoot: 3,
+      // HostText: 原生文本
       HostText: 6,
       IncompleteClassComponent: -1, // Doesn't exist yet
       IndeterminateComponent: 0,
@@ -301,8 +309,10 @@ export function getInternalReactConstants(
     IndeterminateComponent,
     ForwardRef,
     HostRoot,
+    // 原生组件
     HostComponent,
     HostPortal,
+    // HostText: 原生文本
     HostText,
     Fragment,
     MemoComponent,
@@ -352,9 +362,11 @@ export function getInternalReactConstants(
         );
       case HostRoot:
         return null;
+      // 原生组件
       case HostComponent:
         return type;
       case HostPortal:
+        // HostText: 原生文本
       case HostText:
       case Fragment:
         return null;
@@ -439,7 +451,9 @@ export function attach(
     ForwardRef,
     HostRoot,
     HostPortal,
+    // 原生组件
     HostComponent,
+    // HostText: 原生文本
     HostText,
     IncompleteClassComponent,
     IndeterminateComponent,
@@ -625,6 +639,7 @@ export function attach(
         // https://github.com/bvaughn/react-devtools-experimental/issues/197
         return true;
       case HostPortal:
+        // HostText: 原生文本
       case HostText:
       case Fragment:
       case OffscreenComponent:
@@ -691,9 +706,11 @@ export function attach(
         return ElementTypeForwardRef;
       case HostRoot:
         return ElementTypeRoot;
+      // 原生组件
       case HostComponent:
         return ElementTypeHostComponent;
       case HostPortal:
+      // HostText: 原生文本
       case HostText:
       case Fragment:
         return ElementTypeOtherOrUnknown;
@@ -1240,6 +1257,7 @@ export function attach(
     fiber: Fiber,
     parentFiber: Fiber | null,
     traverseSiblings: boolean,
+    // 原生组件
     traceNearestHostComponentUpdate: boolean,
   ) {
     if (__DEBUG__) {
@@ -1258,9 +1276,11 @@ export function attach(
     }
 
     if (traceUpdatesEnabled) {
+      // 原生组件
       if (traceNearestHostComponentUpdate) {
         const elementType = getElementTypeForFiber(fiber);
         // If an ancestor updated, we should mark the nearest host nodes for highlighting.
+        // 原生组件
         if (elementType === ElementTypeHostComponent) {
           traceUpdatesForNodes.add(fiber.stateNode);
           traceNearestHostComponentUpdate = false;
@@ -1864,6 +1884,8 @@ export function attach(
     // Next we'll drill down this component to find all HostComponent/Text.
     let node: Fiber = fiber;
     while (true) {
+      // 原生组件
+      // HostText: 原生文本
       if (node.tag === HostComponent || node.tag === HostText) {
         fibers.push(node);
       } else if (node.child) {
@@ -3250,6 +3272,7 @@ export function attach(
         }
         displayName = pseudoKey;
         break;
+      // 原生组件
       case HostComponent:
         displayName = fiber.type;
         break;

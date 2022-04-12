@@ -36,9 +36,11 @@ export type WorkTagMap = {|
   ForwardRef: WorkTag,
   Fragment: WorkTag,
   FunctionComponent: WorkTag,
+  // 原生组件
   HostComponent: WorkTag,
   HostPortal: WorkTag,
   HostRoot: WorkTag,
+  // HostText: 原生文本
   HostText: WorkTag,
   IncompleteClassComponent: WorkTag,
   IndeterminateComponent: WorkTag,

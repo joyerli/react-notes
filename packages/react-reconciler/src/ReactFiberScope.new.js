@@ -36,6 +36,7 @@ function collectScopedNodes(
   scopedNodes: Array<any>,
 ): void {
   if (enableScopeAPI) {
+    // HostComponent: 原生组件
     if (node.tag === HostComponent) {
       const {type, memoizedProps, stateNode} = node;
       const instance = getPublicInstance(stateNode);
@@ -62,6 +63,7 @@ function collectFirstScopedNode(
   fn: ReactScopeQuery,
 ): null | Object {
   if (enableScopeAPI) {
+    // HostComponent: 原生组件
     if (node.tag === HostComponent) {
       const {type, memoizedProps, stateNode} = node;
       const instance = getPublicInstance(stateNode);

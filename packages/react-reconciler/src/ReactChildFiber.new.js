@@ -378,6 +378,7 @@ function ChildReconciler(shouldTrackSideEffects) {
     textContent: string,
     lanes: Lanes,
   ) {
+    // HostText: 原生文本
     if (current === null || current.tag !== HostText) {
       // Insert
       const created = createFiberFromText(textContent, returnFiber.mode, lanes);
@@ -1109,6 +1110,7 @@ function ChildReconciler(shouldTrackSideEffects) {
   ): Fiber {
     // There's no need to check for keys on text nodes since we don't have a
     // way to define them.
+    // HostText: 原生文本
     if (currentFirstChild !== null && currentFirstChild.tag === HostText) {
       // We already have an existing node so let's just update it and delete
       // the rest.

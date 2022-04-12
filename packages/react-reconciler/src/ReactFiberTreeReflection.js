@@ -305,6 +305,8 @@ export function findCurrentHostFiber(parent: Fiber): Fiber | null {
   // Next we'll drill down this component to find the first HostComponent/Text.
   let node: Fiber = currentParent;
   while (true) {
+    // HostComponent: 原生组件
+    // HostText: 原生文本
     if (node.tag === HostComponent || node.tag === HostText) {
       return node;
     } else if (node.child) {
@@ -339,7 +341,9 @@ export function findCurrentHostFiberWithNoPortals(parent: Fiber): Fiber | null {
   let node: Fiber = currentParent;
   while (true) {
     if (
+      // HostComponent: 原生组件
       node.tag === HostComponent ||
+      // HostText: 原生文本
       node.tag === HostText ||
       (enableFundamentalAPI && node.tag === FundamentalComponent)
     ) {

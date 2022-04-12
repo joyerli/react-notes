@@ -3128,6 +3128,7 @@ function beginWork(
           pushHostRootContext(workInProgress);
           resetHydrationState();
           break;
+        // HostComponent: 原生组件
         case HostComponent:
           pushHostContext(workInProgress);
           break;
@@ -3369,8 +3370,10 @@ function beginWork(
     }
     case HostRoot:
       return updateHostRoot(current, workInProgress, renderLanes);
+    // HostComponent: 原生组件
     case HostComponent:
       return updateHostComponent(current, workInProgress, renderLanes);
+    // HostText: 原生文本
     case HostText:
       return updateHostText(current, workInProgress);
     case SuspenseComponent:

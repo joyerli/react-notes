@@ -342,24 +342,28 @@ const CHILD_HOST_NODE2 = {};
 // TODO: we could test this with regular DOM nodes (and real fibers) instead.
 const GRANDPARENT_INST = {
   return: null,
+  // HostComponent: 原生组件
   tag: HostComponent,
   stateNode: GRANDPARENT_HOST_NODE,
   memoizedProps: {},
 };
 const PARENT_INST = {
   return: GRANDPARENT_INST,
+  // HostComponent: 原生组件
   tag: HostComponent,
   stateNode: PARENT_HOST_NODE,
   memoizedProps: {},
 };
 const CHILD_INST = {
   return: PARENT_INST,
+  // HostComponent: 原生组件
   tag: HostComponent,
   stateNode: CHILD_HOST_NODE,
   memoizedProps: {},
 };
 const CHILD_INST2 = {
   return: PARENT_INST,
+  // HostComponent: 原生组件
   tag: HostComponent,
   stateNode: CHILD_HOST_NODE2,
   memoizedProps: {},

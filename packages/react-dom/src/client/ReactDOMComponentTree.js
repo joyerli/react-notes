@@ -81,7 +81,7 @@ export function isContainerMarkedAsRoot(node: Container): boolean {
 // HostRoot back. To get to the HostRoot, you need to pass a child of it.
 // The same thing applies to Suspense boundaries.
 
-// 翻译：给定一个 DOM 节点，返回最近的 HostComponent 或 HostText Fiber祖先。 如果目标节点是hydrated子树或尚未渲染的子树的一部分，
+// 翻译：给定一个 DOM 节点，返回最近的 HostComponent（原生组件，如div） 或 HostText（原生文本） Fiber祖先。 如果目标节点是hydrated子树或尚未渲染的子树的一部分，
 // 那么这也可能返回一个 SuspenseComponent 或 HostRoot 来表明这一点。
 //  从概念上讲，HostRoot Fiber对象是 Container 节点的子节点。
 // 因此，如果您将 Container 节点作为 targetNode 传递，
@@ -236,7 +236,9 @@ export function getInstanceFromNode(node: Node): Fiber | null {
     (node: any)[internalContainerInstanceKey];
   if (inst) {
     if (
+      // 原生组件
       inst.tag === HostComponent ||
+      // HostText: 原生文本
       inst.tag === HostText ||
       inst.tag === SuspenseComponent ||
       inst.tag === HostRoot
@@ -254,6 +256,8 @@ export function getInstanceFromNode(node: Node): Fiber | null {
  * DOM node.
  */
 export function getNodeFromInstance(inst: Fiber): Instance | TextInstance {
+  // HostComponent: 原生组件
+  // HostText: 原生文本
   if (inst.tag === HostComponent || inst.tag === HostText) {
     // In Fiber this, is just the state node right now. We assume it will be
     // a host component or host text.
@@ -312,6 +316,7 @@ export function setEventHandlerListeners(
   (scope: any)[internalEventHandlerListenersKey] = listeners;
 }
 
+// 从dom对象中获取react的事件监听器队列
 export function getEventHandlerListeners(
   scope: EventTarget | ReactScopeInstance,
 ): null | Set<ReactDOMEventHandleListener> {

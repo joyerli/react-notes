@@ -429,6 +429,7 @@ function findHostInstancesForFiberShallowly(
     let node = fiber;
     while (true) {
       switch (node.tag) {
+        // HostComponent: 原生组件
         case HostComponent:
           hostInstances.add(node.stateNode);
           return;

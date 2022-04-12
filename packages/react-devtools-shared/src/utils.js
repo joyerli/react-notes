@@ -232,6 +232,7 @@ export function getDefaultComponentFilters(): Array<ComponentFilter> {
   return [
     {
       type: ComponentFilterElementType,
+      // 原生组件
       value: ElementTypeHostComponent,
       isEnabled: true,
     },

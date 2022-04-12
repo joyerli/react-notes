@@ -77,6 +77,7 @@ function unwindWork(workInProgress: Fiber, renderLanes: Lanes) {
       workInProgress.flags = (flags & ~ShouldCapture) | DidCapture;
       return workInProgress;
     }
+    // HostComponent: 原生组件
     case HostComponent: {
       // TODO: popHydrationState
       popHostContext(workInProgress);
@@ -146,6 +147,7 @@ function unwindInterruptedWork(interruptedWork: Fiber) {
       resetMutableSourceWorkInProgressVersions();
       break;
     }
+    // HostComponent: 原生组件
     case HostComponent: {
       popHostContext(interruptedWork);
       break;

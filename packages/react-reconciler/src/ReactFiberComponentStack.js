@@ -35,6 +35,7 @@ function describeFiber(fiber: Fiber): string {
     : null;
   const source = __DEV__ ? fiber._debugSource : null;
   switch (fiber.tag) {
+    // HostComponent: 原生组件
     case HostComponent:
       return describeBuiltInComponentFrame(fiber.type, source, owner);
     case LazyComponent:

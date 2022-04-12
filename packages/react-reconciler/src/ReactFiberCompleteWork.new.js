@@ -209,6 +209,8 @@ if (supportsMutation) {
     // children to find all the terminal nodes.
     let node = workInProgress.child;
     while (node !== null) {
+      // HostComponent: 原生组件
+      // HostText: 原生文本
       if (node.tag === HostComponent || node.tag === HostText) {
         appendInitialChild(parent, node.stateNode);
       } else if (enableFundamentalAPI && node.tag === FundamentalComponent) {
@@ -305,6 +307,7 @@ if (supportsMutation) {
     let node = workInProgress.child;
     while (node !== null) {
       // eslint-disable-next-line no-labels
+      // HostComponent: 原生组件
       branches: if (node.tag === HostComponent) {
         let instance = node.stateNode;
         if (needsVisibilityToggle && isHidden) {
@@ -314,6 +317,7 @@ if (supportsMutation) {
           instance = cloneHiddenInstance(instance, type, props, node);
         }
         appendInitialChild(parent, instance);
+        // HostText: 原生文本
       } else if (node.tag === HostText) {
         let instance = node.stateNode;
         if (needsVisibilityToggle && isHidden) {
@@ -399,6 +403,7 @@ if (supportsMutation) {
     let node = workInProgress.child;
     while (node !== null) {
       // eslint-disable-next-line no-labels
+      // HostComponent: 原生组件
       branches: if (node.tag === HostComponent) {
         let instance = node.stateNode;
         if (needsVisibilityToggle && isHidden) {
@@ -408,6 +413,7 @@ if (supportsMutation) {
           instance = cloneHiddenInstance(instance, type, props, node);
         }
         appendChildToContainerChildSet(containerChildSet, instance);
+        // HostText: 原生文本
       } else if (node.tag === HostText) {
         let instance = node.stateNode;
         if (needsVisibilityToggle && isHidden) {
@@ -853,6 +859,7 @@ function completeWork(
       bubbleProperties(workInProgress);
       return null;
     }
+    // HostComponent: 原生组件
     case HostComponent: {
       popHostContext(workInProgress);
       const rootContainerInstance = getRootHostContainer();
@@ -938,6 +945,7 @@ function completeWork(
       bubbleProperties(workInProgress);
       return null;
     }
+    // HostText: 原生文本
     case HostText: {
       const newText = newProps;
       if (current && workInProgress.stateNode != null) {

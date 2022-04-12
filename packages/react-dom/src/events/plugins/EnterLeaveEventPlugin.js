@@ -103,6 +103,8 @@ function extractEvents(
       const nearestMounted = getNearestMountedFiber(to);
       if (
         to !== nearestMounted ||
+        // HostComponent: 原生组件，如div
+        // HostText: 原生文本
         (to.tag !== HostComponent && to.tag !== HostText)
       ) {
         to = null;

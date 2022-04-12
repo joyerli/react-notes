@@ -110,6 +110,7 @@ function deleteHydratableInstance(
           instance,
         );
         break;
+      // HostComponent: 原生组件
       case HostComponent:
         didNotHydrateInstance(
           returnFiber.type,
@@ -146,11 +147,13 @@ function insertNonHydratedInstance(returnFiber: Fiber, fiber: Fiber) {
       case HostRoot: {
         const parentContainer = returnFiber.stateNode.containerInfo;
         switch (fiber.tag) {
+          // HostComponent: 原生组件
           case HostComponent:
             const type = fiber.type;
             const props = fiber.pendingProps;
             didNotFindHydratableContainerInstance(parentContainer, type, props);
             break;
+          // HostText: 原生文本
           case HostText:
             const text = fiber.pendingProps;
             didNotFindHydratableContainerTextInstance(parentContainer, text);
@@ -161,11 +164,13 @@ function insertNonHydratedInstance(returnFiber: Fiber, fiber: Fiber) {
         }
         break;
       }
+      // HostComponent: 原生组件
       case HostComponent: {
         const parentType = returnFiber.type;
         const parentProps = returnFiber.memoizedProps;
         const parentInstance = returnFiber.stateNode;
         switch (fiber.tag) {
+          // HostComponent: 原生组件
           case HostComponent:
             const type = fiber.type;
             const props = fiber.pendingProps;
@@ -177,6 +182,7 @@ function insertNonHydratedInstance(returnFiber: Fiber, fiber: Fiber) {
               props,
             );
             break;
+          // HostText: 原生文本
           case HostText:
             const text = fiber.pendingProps;
             didNotFindHydratableTextInstance(
@@ -204,6 +210,7 @@ function insertNonHydratedInstance(returnFiber: Fiber, fiber: Fiber) {
 
 function tryHydrate(fiber, nextInstance) {
   switch (fiber.tag) {
+    // HostComponent: 原生组件
     case HostComponent: {
       const type = fiber.type;
       const props = fiber.pendingProps;
@@ -214,6 +221,7 @@ function tryHydrate(fiber, nextInstance) {
       }
       return false;
     }
+    // HostText: 原生文本
     case HostText: {
       const text = fiber.pendingProps;
       const textInstance = canHydrateTextInstance(nextInstance, text);
@@ -351,6 +359,7 @@ function prepareToHydrateHostTextInstance(fiber: Fiber): boolean {
             );
             break;
           }
+          // HostComponent: 原生组件
           case HostComponent: {
             const parentType = returnFiber.type;
             const parentProps = returnFiber.memoizedProps;
@@ -416,6 +425,7 @@ function popToNextHostParent(fiber: Fiber): void {
   let parent = fiber.return;
   while (
     parent !== null &&
+    // HostComponent: 原生组件
     parent.tag !== HostComponent &&
     parent.tag !== HostRoot &&
     parent.tag !== SuspenseComponent
@@ -451,6 +461,7 @@ function popHydrationState(fiber: Fiber): boolean {
   // side of them.
   // TODO: Better heuristic.
   if (
+    // HostComponent: 原生组件
     fiber.tag !== HostComponent ||
     (type !== 'head' &&
       type !== 'body' &&

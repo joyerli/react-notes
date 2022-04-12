@@ -25,6 +25,11 @@ function functionThatReturnsFalse() {
 
 // This is intentionally a factory so that we have different returned constructors.
 // If we had a single constructor, it would be megamorphic and engines would deopt.
+
+// 翻译：
+// 这是一个工厂，所以我们有不同的返回构造函数。 如果我们只有一个构造函数，它将是超多态的，并且引擎将停止使用。
+
+// 这是一个创造合成事件对象构造函数的工厂函数
 function createSyntheticEvent(Interface: EventInterfaceType) {
   /**
    * Synthetic events are dispatched by event plugins, typically in response to a
@@ -39,11 +44,32 @@ function createSyntheticEvent(Interface: EventInterfaceType) {
    * normalizing browser quirks. Subclasses do not necessarily have to implement a
    * DOM interface; custom application-specific events can also subclass this.
    */
+
+  // 翻译：
+  // 合成事件由事件插件调度，通常是为了响应顶级事件委托处理程序。
+  //
+  // 这些系统通常应该使用池来减少垃圾收集的频率。
+  // 系统应该检查 `isPersistent` 以确定事件在被调度后是否应该释放到池中。 需要持久事件的用户应该调用 `persist`。
+  //
+  // 合成事件（和子类）通过规范化浏览器怪癖来实现 DOM 3 级事件 API。
+  // 子类不一定要实现 DOM 接口； 自定义应用程序特定的事件也可以继承它。
+
+  // 合成事件百度结果：
+  // 我们在react中操作的DOM事件，获取到的事件对象，其实是react内部帮我们合成的。
+  // 为了节约性能，会使用对象池，当一个合成事件对象被使用完毕，即同步代码实现完毕后，会再次调用并且将其属性全部设为Null，
+  // 所以当我们异步访问或者打印时，显示的属性值已经是null值。
+
+  // 合成事件的基础构造函数
   function SyntheticBaseEvent(
+    // react事件名，为onXXX
     reactName: string | null,
+    // react的事件类型，原生事件名
     reactEventType: string,
+    // 对应的fiber对象
     targetInst: Fiber,
+    // 原生事件对象
     nativeEvent: {[propName: string]: mixed},
+    // 原生事件的目标dom节点
     nativeEventTarget: null | EventTarget,
   ) {
     this._reactName = reactName;
@@ -53,66 +79,97 @@ function createSyntheticEvent(Interface: EventInterfaceType) {
     this.target = nativeEventTarget;
     this.currentTarget = null;
 
+    // 变量接口自带属性
     for (const propName in Interface) {
       if (!Interface.hasOwnProperty(propName)) {
         continue;
       }
+      // 获取属性定制函数
       const normalize = Interface[propName];
+      // 如果有，定制
       if (normalize) {
         this[propName] = normalize(nativeEvent);
       } else {
+        // 没有，使用时间对象原有值
         this[propName] = nativeEvent[propName];
       }
     }
 
+    // 设置isDefaultPrevented
+    // defaultPrevented代表当前事件是否调用了 event.preventDefault()的方法
     const defaultPrevented =
       nativeEvent.defaultPrevented != null
         ? nativeEvent.defaultPrevented
         : nativeEvent.returnValue === false;
+    // 设置isDefaultPrevented的默认值
     if (defaultPrevented) {
+      // 永远返回true的函数
       this.isDefaultPrevented = functionThatReturnsTrue;
     } else {
+      // 永远返回false的函数
       this.isDefaultPrevented = functionThatReturnsFalse;
     }
+    // 将事件是否执行停止冒泡(stopPropagation)设置为默认永远返回false
+    // TODO: ll 这里为什么不考虑原生的事件已经被停止冒泡过了呢，为什么defaultPrevented要判断
     this.isPropagationStopped = functionThatReturnsFalse;
     return this;
   }
 
+  // 是这对象的属性
   Object.assign(SyntheticBaseEvent.prototype, {
+    // 事件的preventDefault属性，代理原生事件的改函数，浏览器兼容
+    // 原生preventDefault的含义为：告诉用户代理不要处理事件的默认浏览器行为（如链接点击跳转）
     preventDefault: function() {
+      // 设置defaultPrevented的值
       this.defaultPrevented = true;
+      // 获取原生事件事件
       const event = this.nativeEvent;
+      // 没有对应原生事件，结束
       if (!event) {
         return;
       }
 
+      // 如果事件支持preventDefault函数
       if (event.preventDefault) {
+        // 调用
         event.preventDefault();
         // $FlowFixMe - flow is not aware of `unknown` in IE
+        // 处理ie等页数浏览器中使用returnValue的情况
       } else if (typeof event.returnValue !== 'unknown') {
         event.returnValue = false;
       }
+      // 设置对应的isDefaultPrevented
       this.isDefaultPrevented = functionThatReturnsTrue;
     },
 
+    // 设置停止冒泡逻辑，代理原生的停止冒泡，浏览器兼容
+    //
     stopPropagation: function() {
+      // 没有对应的原生事件对象，直接结束
       const event = this.nativeEvent;
       if (!event) {
         return;
       }
 
       if (event.stopPropagation) {
+        // 调用事件的原有
         event.stopPropagation();
         // $FlowFixMe - flow is not aware of `unknown` in IE
+        // ie等古老浏览器的非标准停止冒泡方式
       } else if (typeof event.cancelBubble !== 'unknown') {
         // The ChangeEventPlugin registers a "propertychange" event for
         // IE. This event does not support bubbling or cancelling, and
         // any references to cancelBubble throw "Member not found".  A
         // typeof check of "unknown" circumvents this issue (and is also
         // IE specific).
+        // 翻译：
+        // ChangeEventPlugin 为 IE 注册一个“propertychange”事件。
+        // 此事件不支持冒泡或取消，任何对 cancelBubble 的引用都会抛出“未找到成员”。
+        // “未知”的 typeof 检查绕过了这个问题（并且也是 IE 特定的）。
         event.cancelBubble = true;
       }
 
+      // 设置isPropagationStopped属性
       this.isPropagationStopped = functionThatReturnsTrue;
     },
 
@@ -121,17 +178,27 @@ function createSyntheticEvent(Interface: EventInterfaceType) {
      * them back into the pool. This allows a way to hold onto a reference that
      * won't be added back into the pool.
      */
+    // 翻译：
+    // 我们在每个事件循环之后释放所有已调度的 SyntheticEvent，将它们添加回池中。 这允许一种方法来保留不会添加回池中的引用。
+
+    // 意思是老api,当前版本其实没用
     persist: function() {
       // Modern event system doesn't use pooling.
+      // 翻译：现代浏览器不需要
     },
 
     /**
      * Checks if this event should be released back into the pool.
      *
+     * 检查是否应将此事件释放回池中。
+     *
      * @return {boolean} True if this should not be released, false otherwise.
+     *
+     * 如果不应该释放，则为 true，否则为 false。
      */
     isPersistent: functionThatReturnsTrue,
   });
+
   return SyntheticBaseEvent;
 }
 
@@ -139,6 +206,9 @@ function createSyntheticEvent(Interface: EventInterfaceType) {
  * @interface Event
  * @see http://www.w3.org/TR/DOM-Level-3-Events/
  */
+// Event事件接口
+// 设置为0时，获取原生值
+// 设置为函数时，进行定制
 const EventInterface = {
   eventPhase: 0,
   bubbles: 0,
@@ -149,6 +219,9 @@ const EventInterface = {
   defaultPrevented: 0,
   isTrusted: 0,
 };
+
+// 创造一个合成事件创造器
+// TODO: createSyntheticEvent
 export const SyntheticEvent = createSyntheticEvent(EventInterface);
 
 const UIEventInterface: EventInterfaceType = {

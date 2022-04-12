@@ -223,6 +223,7 @@ export function createInstance(
     internalInstanceHandle, // internalInstanceHandle
   );
 
+  // 原生组件的fiber组件对象
   const component = new ReactFabricHostComponent(
     tag,
     viewConfig,

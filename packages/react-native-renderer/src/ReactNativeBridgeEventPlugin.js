@@ -57,6 +57,7 @@ function getParent(inst) {
     // events to their parent. We could also go through parentNode on the
     // host node but that wouldn't work for React Native and doesn't let us
     // do the portal feature.
+    // HostComponent: 原生组件
   } while (inst && inst.tag !== HostComponent);
   if (inst) {
     return inst;

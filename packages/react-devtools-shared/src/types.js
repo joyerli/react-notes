@@ -25,6 +25,7 @@ export const ElementTypeClass = 1;
 export const ElementTypeContext = 2;
 export const ElementTypeFunction = 5;
 export const ElementTypeForwardRef = 6;
+// 原生组件
 export const ElementTypeHostComponent = 7;
 export const ElementTypeMemo = 8;
 export const ElementTypeOtherOrUnknown = 9;

@@ -48,6 +48,7 @@ if (__DEV__) {
     for (let i = hierarchy.length - 1; i > 1; i--) {
       const instance = hierarchy[i];
 
+      // HostComponent: 原生组件
       if (instance.tag !== HostComponent) {
         return instance;
       }
@@ -68,6 +69,7 @@ if (__DEV__) {
     // look for children first for the hostNode
     // as composite fibers do not have a hostNode
     while (fiber) {
+      // HostComponent: 原生组件
       if (fiber.stateNode !== null && fiber.tag === HostComponent) {
         hostNode = findNodeHandle(fiber.stateNode);
       }

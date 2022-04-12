@@ -465,6 +465,7 @@ export function createFiberFromTypeAndProps(
       }
     }
   } else if (typeof type === 'string') {
+    // HostComponent: 原生组件
     fiberTag = HostComponent;
   } else {
     getTag: switch (type) {
@@ -745,12 +746,14 @@ export function createFiberFromText(
   mode: TypeOfMode,
   lanes: Lanes,
 ): Fiber {
+  // HostText: 原生文本
   const fiber = createFiber(HostText, content, null, mode);
   fiber.lanes = lanes;
   return fiber;
 }
 
 export function createFiberFromHostInstanceForDeletion(): Fiber {
+  // HostComponent: 原生组件
   const fiber = createFiber(HostComponent, null, null, NoMode);
   // TODO: These should not need a type.
   fiber.elementType = 'DELETED';

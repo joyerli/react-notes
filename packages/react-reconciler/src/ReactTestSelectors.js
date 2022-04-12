@@ -146,6 +146,7 @@ function matchSelector(fiber: Fiber, selector: Selector): boolean {
         ((selector: any): HasPsuedoClassSelector).value,
       );
     case ROLE_TYPE:
+      // HostComponent: 原生组件
       if (fiber.tag === HostComponent) {
         const node = fiber.stateNode;
         if (
@@ -156,6 +157,8 @@ function matchSelector(fiber: Fiber, selector: Selector): boolean {
       }
       break;
     case TEXT_TYPE:
+      // HostComponent: 原生组件
+      // HostText: 原生文本
       if (fiber.tag === HostComponent || fiber.tag === HostText) {
         const textContent = getTextContent(fiber);
         if (
@@ -167,6 +170,7 @@ function matchSelector(fiber: Fiber, selector: Selector): boolean {
       }
       break;
     case TEST_NAME_TYPE:
+      // HostComponent: 原生组件
       if (fiber.tag === HostComponent) {
         const dataTestID = fiber.memoizedProps['data-testname'];
         if (
@@ -217,6 +221,7 @@ function findPaths(root: Fiber, selectors: Array<Selector>): Array<Fiber> {
     let selectorIndex = ((stack[index++]: any): number);
     let selector = selectors[selectorIndex];
 
+    // HostComponent: 原生组件
     if (fiber.tag === HostComponent && isHiddenSubtree(fiber)) {
       continue;
     } else {
@@ -249,6 +254,7 @@ function hasMatchingPaths(root: Fiber, selectors: Array<Selector>): boolean {
     let selectorIndex = ((stack[index++]: any): number);
     let selector = selectors[selectorIndex];
 
+    // HostComponent: 原生组件
     if (fiber.tag === HostComponent && isHiddenSubtree(fiber)) {
       continue;
     } else {
@@ -289,6 +295,7 @@ export function findAllNodes(
   let index = 0;
   while (index < stack.length) {
     const node = ((stack[index++]: any): Fiber);
+    // HostComponent: 原生组件
     if (node.tag === HostComponent) {
       if (isHiddenSubtree(node)) {
         continue;
@@ -327,6 +334,7 @@ export function getFindAllNodesFailureDescription(
     let selectorIndex = ((stack[index++]: any): number);
     const selector = selectors[selectorIndex];
 
+    // HostComponent: 原生组件
     if (fiber.tag === HostComponent && isHiddenSubtree(fiber)) {
       continue;
     } else if (matchSelector(fiber, selector)) {
@@ -479,6 +487,7 @@ export function focusWithin(
     if (isHiddenSubtree(fiber)) {
       continue;
     }
+    // HostComponent: 原生组件
     if (fiber.tag === HostComponent) {
       const node = fiber.stateNode;
       if (setFocusIfFocusable(node)) {

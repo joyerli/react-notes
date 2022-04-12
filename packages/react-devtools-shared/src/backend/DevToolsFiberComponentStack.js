@@ -27,6 +27,7 @@ function describeFiber(
   currentDispatcherRef: CurrentDispatcherRef,
 ): string {
   const {
+    // 原生组件
     HostComponent,
     LazyComponent,
     SuspenseComponent,
@@ -46,6 +47,7 @@ function describeFiber(
     : null;
   const source = __DEV__ ? workInProgress._debugSource : null;
   switch (workInProgress.tag) {
+    // 原生组件
     case HostComponent:
       return describeBuiltInComponentFrame(workInProgress.type, source, owner);
     case LazyComponent:

@@ -203,6 +203,7 @@ function toTree(node: ?Fiber) {
         instance: null,
         rendered: childrenToTree(node.child),
       };
+      // HostComponent: 原生组件
     case HostComponent: {
       return {
         nodeType: 'host',
@@ -212,6 +213,7 @@ function toTree(node: ?Fiber) {
         rendered: flatten(nodeAndSiblingsArray(node.child).map(toTree)),
       };
     }
+    // HostText: 原生文本
     case HostText:
       return node.stateNode.text;
     case Fragment:
@@ -305,6 +307,7 @@ class ReactTestInstance {
   }
 
   get instance() {
+    // HostComponent: 原生组件
     if (this._fiber.tag === HostComponent) {
       return getPublicInstance(this._fiber.stateNode);
     } else {

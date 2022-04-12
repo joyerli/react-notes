@@ -1170,6 +1170,7 @@ export function getTextContent(fiber: Fiber): string | null {
         }
       }
       return textContent;
+      // HostText: 原生文本
     case HostText:
       return fiber.stateNode.textContent;
   }

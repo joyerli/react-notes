@@ -66,16 +66,18 @@ function extractEvents(
   // 需要添加事件的dom节点  ==> 基本为react挂在的节点
   targetContainer: EventTarget,
 ): void {
-  // 转成react中的事件名，各浏览器存在一些非标准的事件名和处理，这些操作将其处理为标准的
-  // TODO: ll topLevelEventsToReactNames.get
-  // FIXME: READ_THIS
+  // 将原生事件名转换成对应的react中的事件属性，为onXXX格式，如onClick
   const reactName = topLevelEventsToReactNames.get(domEventName);
   // 如果没有对应的react事件名字，那么不需要处理
   if (reactName === undefined) {
     return;
   }
-  // 事件对象创建器(类)， 默认为未知情况下，尽量模拟的事件
-  // TODO: ll SyntheticEvent 下面阅读几个对应的
+  // 合成事件类， 默认情况下为最基础的合成事件
+  // 合成事件的理解：
+  // 我们在react中操作的DOM事件，获取到的事件对象，其实是react内部帮我们合成的。
+  // 为了节约性能，会使用对象池，当一个合成事件对象被使用完毕，即同步代码实现完毕后，会再次调用并且将其属性全部设为Null
+  // 下面中的不同合同事件类型(如SyntheticKeyboardEvent)，是根据dom的事件标准，具有不同的事件属性，这些事件属性基本都是代理原生的事件值，
+  // 但对于一些特殊的属性做了浏览器兼容处理和特殊属性的设置
   let SyntheticEventCtor = SyntheticEvent;
   // 事件类型，初始值为原生的事件名
   let reactEventType: string = domEventName;
@@ -97,7 +99,6 @@ function extractEvents(
     /* falls through */
     case 'keydown':
     case 'keyup':
-      // TODO: ll SyntheticKeyboardEvent
       SyntheticEventCtor = SyntheticKeyboardEvent;
       break;
     case 'focusin':
@@ -160,7 +161,6 @@ function extractEvents(
       SyntheticEventCtor = SyntheticTransitionEvent;
       break;
     case 'scroll':
-      // TODO: ll SyntheticKeyboardEvent
       SyntheticEventCtor = SyntheticUIEvent;
       break;
     case 'wheel':
@@ -193,13 +193,12 @@ function extractEvents(
     enableCreateEventHandleAPI &&
     eventSystemFlags & IS_EVENT_HANDLE_NON_MANAGED_NODE
   ) {
-    // 创建监听器列表（累积非托管模式的事件列表）
-    // TODO: ll accumulateEventHandleNonManagedNodeListeners
+    // 获取在dom对象上保存的监听队列
     const listeners = accumulateEventHandleNonManagedNodeListeners(
       // TODO: this cast may not make sense for events like
       // "focus" where React listens to e.g. "focusin".
       // 翻译：
-      // 当react监听`focusin`事件时，不会处罚`focus`事件监听器。
+      // 当react监听`focusin`事件时，不会触发`focus`事件监听器。
 
       // 标准的事件名
       ((reactEventType: any): DOMEventName),
@@ -213,7 +212,7 @@ function extractEvents(
       // Intentionally create event lazily.
       // 翻译：故意懒惰地创建事件。
 
-      // 创建事件
+      // 创建事件对象(合成事件)
       const event = new SyntheticEventCtor(
         // 事件名
         reactName,
@@ -226,7 +225,7 @@ function extractEvents(
         // 得到原生的事件触发对象
         nativeEventTarget,
       );
-      // 存入队列
+      // 将事件对象和监听器队列，存入事件触发队列
       dispatchQueue.push({event, listeners});
     }
   } else {
@@ -258,16 +257,23 @@ function extractEvents(
 
     // 创建监听列表（积累单阶段监听器）
     // TODO: ll accumulateSinglePhaseListeners
+    // FIXME: 下沉 15
     const listeners = accumulateSinglePhaseListeners(
+      // 目标fiber节点
       targetInst,
+      // react监听属性名
       reactName,
+      // 原生事件类型
       nativeEvent.type,
+      // 是否是捕获阶段
       inCapturePhase,
+      // 是否仅仅是累积目标
       accumulateTargetOnly,
     );
     if (listeners.length > 0) {
       // Intentionally create event lazily.
-      // 懒加载创建事件对象
+      // 翻译：懒加载创建事件对象
+
       const event = new SyntheticEventCtor(
         reactName,
         reactEventType,

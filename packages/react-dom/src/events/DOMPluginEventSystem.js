@@ -1006,7 +1006,7 @@ export function dispatchEventForPluginEventSystem(
             }
             // 父节点标签
             const parentTag = parentNode.tag;
-            // 如果是HostComponent 或者是HostText 时
+            // 如果是原生组件（HostComponent） 或者是原生文本(HostText) 时
             if (parentTag === HostComponent || parentTag === HostText) {
               // 将 node 和 ancestorInst都设置为父节点
               node = ancestorInst = parentNode;
@@ -1045,6 +1045,7 @@ export function dispatchEventForPluginEventSystem(
   );
 }
 
+// 创建一个监听器对象
 function createDispatchListener(
   instance: null | Fiber,
   listener: Function,
@@ -1057,24 +1058,40 @@ function createDispatchListener(
   };
 }
 
+// 创建监听列表（积累单阶段监听器）
 export function accumulateSinglePhaseListeners(
+  // 目标fiber节点
   targetFiber: Fiber | null,
+  // react监听属性名
   reactName: string | null,
+  // 原生事件类型
   nativeEventType: string,
+  // 是否是捕获阶段
   inCapturePhase: boolean,
+  // 是否仅仅是累积目标
   accumulateTargetOnly: boolean,
 ): Array<DispatchListener> {
+  // 监听捕获阶段的事件名
   const captureName = reactName !== null ? reactName + 'Capture' : null;
+  // react事件的属性名
   const reactEventName = inCapturePhase ? captureName : reactName;
+  // 事件监听队列
   const listeners: Array<DispatchListener> = [];
 
   let instance = targetFiber;
+  // 最近的一个原生组件
   let lastHostComponent = null;
 
   // Accumulate all instances and listeners via the target -> root path.
+  // 翻译 通过遍历target -> root累积所有实例上的侦听器。
   while (instance !== null) {
+    // stateNode：实例对象, 如类组件的实例、原生 dom 实例
+    // tag: fiber标签，可以理解为类型，如有react组件类型，html文本类型等
     const {stateNode, tag} = instance;
+
     // Handle listeners that are on HostComponents (i.e. <div>)
+    // 处理原生组件上的侦听器队列（如 <div>）
+
     if (tag === HostComponent && stateNode !== null) {
       lastHostComponent = stateNode;
 
@@ -1169,6 +1186,7 @@ export function accumulateTwoPhaseListeners(
   while (instance !== null) {
     const {stateNode, tag} = instance;
     // Handle listeners that are on HostComponents (i.e. <div>)
+    // HostComponent: 原生组件
     if (tag === HostComponent && stateNode !== null) {
       const currentTarget = stateNode;
       const captureListener = getListener(instance, captureName);
@@ -1200,6 +1218,7 @@ function getParent(inst: Fiber | null): Fiber | null {
     // events to their parent. We could also go through parentNode on the
     // host node but that wouldn't work for React Native and doesn't let us
     // do the portal feature.
+    // HostComponent: 原生组件
   } while (inst && inst.tag !== HostComponent);
   if (inst) {
     return inst;
@@ -1266,6 +1285,7 @@ function accumulateEnterLeaveListenersForEvent(
     if (alternate !== null && alternate === common) {
       break;
     }
+    // HostComponent: 原生组件
     if (tag === HostComponent && stateNode !== null) {
       const currentTarget = stateNode;
       if (inCapturePhase) {
@@ -1325,23 +1345,35 @@ export function accumulateEnterLeaveTwoPhaseListeners(
   }
 }
 
+// 获取在dom对象上持续保存的对应的react事件名的监听器
 export function accumulateEventHandleNonManagedNodeListeners(
+  // 原生事件名
   reactEventType: DOMEventName,
+  // 原生事件触发事件的dom对象
   currentTarget: EventTarget,
+  // 是否是捕获阶段
   inCapturePhase: boolean,
 ): Array<DispatchListener> {
+
+  // 初始化监听队列
   const listeners: Array<DispatchListener> = [];
 
+  // 获取事件对象的已有的监听队列(react监听队列)
   const eventListeners = getEventHandlerListeners(currentTarget);
+  // 如果存在原有监听队列
   if (eventListeners !== null) {
+    // 遍历
     eventListeners.forEach(entry => {
+      // 添加匹配当前类型的事件进入事件队列
       if (entry.type === reactEventType && entry.capture === inCapturePhase) {
         listeners.push(
+          // 创建一个监听器对象，就是将传入参数打包成一个对象
           createDispatchListener(null, entry.callback, currentTarget),
         );
       }
     });
   }
+  // 返回整个事件队列
   return listeners;
 }
 
