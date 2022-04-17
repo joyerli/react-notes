@@ -87,7 +87,7 @@ export function isContainerMarkedAsRoot(node: Container): boolean {
 // 因此，如果您将 Container 节点作为 targetNode 传递，
 // 您实际上不会得到 HostRoot。 要访问 HostRoot，您需要传递它的一个子节点。 同样的事情也适用于悬念边界。
 
-// 获取dom节点中最近的fiber对象
+// 获取dom节点中最近(往祖先方向)的fiber对象
 export function getClosestInstanceFromNode(targetNode: Node): null | Fiber {
   // 获取节点中的fiber对象
   let targetInst = (targetNode: any)[internalInstanceKey];
@@ -255,6 +255,8 @@ export function getInstanceFromNode(node: Node): Fiber | null {
  * Given a ReactDOMComponent or ReactDOMTextComponent, return the corresponding
  * DOM node.
  */
+// 翻译：给定一个 ReactDOMComponent 或 ReactDOMTextComponent，返回对应的 DOM 节点。
+// 根据给的fiber节点获取当前的dom或者text dom节点
 export function getNodeFromInstance(inst: Fiber): Instance | TextInstance {
   // HostComponent: 原生组件
   // HostText: 原生文本

@@ -121,9 +121,9 @@ function extractEvents(
   // 所有其他插件本质上都是 polyfills。 所以插件可能应该被内联到某个地方，并且它的逻辑是事件系统的核心。
   // 这可能允许我们在没有下面的 polyfill 插件的情况下发布 React 构建。
 
-  // TODO: ll 在SimpleEventPlugin插件系统中抽取事件
-  // FIXME: 下沉 14
-  // SimpleEventPlugin 可以理解为通用的处理逻辑
+  // 处理标准的，统一的事件的抽取工作：将对应dom元素的dom树跟fiber树对应的事件监听器抽取到委托队列中。
+  // 一些事件可以统一在一起处理，而对于一些特殊事件，会在下面的不同的事件插件系统中被处理
+  // SimpleEventPlugin 可以理解为通用的事件处理逻辑
   SimpleEventPlugin.extractEvents(
     // 事件待触发队列
     dispatchQueue,
@@ -170,9 +170,9 @@ function extractEvents(
   // 只是为了稍后出现以下气泡事件并且不会触发任何事情，因为状态现在使事件插件的启发式无效 .
   // 我们可以改变所有这些插件以这种方式工作，但这可能会导致我们现在无法预见的其他未知副作用。
 
-  // 处理浏览器中非标准事件
+  // 处理浏览器中特殊的事件
   if (shouldProcessPolyfillPlugins) {
-    // TODO: ll EnterLeaveEventPlugin.extractEvents
+    // 处理鼠标移出移入事件
     EnterLeaveEventPlugin.extractEvents(
       // 事件待触发队列
     dispatchQueue,
@@ -190,6 +190,7 @@ function extractEvents(
     targetContainer,
     );
     // TODO: ll ChangeEventPlugin.extractEvents
+    // FIXME: READ_THIS
     ChangeEventPlugin.extractEvents(
       // 事件待触发队列
       dispatchQueue,
@@ -1092,14 +1093,17 @@ export function accumulateSinglePhaseListeners(
     // Handle listeners that are on HostComponents (i.e. <div>)
     // 处理原生组件上的侦听器队列（如 <div>）
 
+    // 如果是原生dom组件
     if (tag === HostComponent && stateNode !== null) {
       lastHostComponent = stateNode;
 
       // createEventHandle listeners
       if (enableCreateEventHandleAPI) {
+        // 从dom对象中获取事件处理监听队
         const eventHandlerListeners = getEventHandlerListeners(
           lastHostComponent,
         );
+        // 抽取指定类型的事件处理器到当前队列
         if (eventHandlerListeners !== null) {
           eventHandlerListeners.forEach(entry => {
             if (
@@ -1119,8 +1123,12 @@ export function accumulateSinglePhaseListeners(
       }
 
       // Standard React on* listeners, i.e. onClick or onClickCapture
+      // 处理标准的react监听器(on开头)
       if (reactEventName !== null) {
+        // 从当前fiber实例中获取监听器
+        // 从fiber对应的组件实例(stateNode)中的props获取设置的事件处理器。
         const listener = getListener(instance, reactEventName);
+        // 放入队列
         if (listener != null) {
           listeners.push(
             createDispatchListener(instance, listener, lastHostComponent),
@@ -1128,6 +1136,7 @@ export function accumulateSinglePhaseListeners(
         }
       }
     } else if (
+      // 如果是Scope组件，且有最近的dom节点
       enableCreateEventHandleAPI &&
       enableScopeAPI &&
       tag === ScopeComponent &&
@@ -1135,10 +1144,13 @@ export function accumulateSinglePhaseListeners(
       stateNode !== null
     ) {
       // Scopes
+      // Scope实例
       const reactScopeInstance = stateNode;
+      // 得到已经实例累积的监听集合
       const eventHandlerListeners = getEventHandlerListeners(
         reactScopeInstance,
       );
+      // 将符合当前类型的监听器放入处理的监听器集合中
       if (eventHandlerListeners !== null) {
         eventHandlerListeners.forEach(entry => {
           if (
@@ -1159,9 +1171,13 @@ export function accumulateSinglePhaseListeners(
     // If we are only accumulating events for the target, then we don't
     // continue to propagate through the React fiber tree to find other
     // listeners.
+
+    //
+    // 如果只处理当前节点的累积事件处理器，那么只循环一次，不处理它的祖先节点。
     if (accumulateTargetOnly) {
       break;
     }
+    // 往节点上级迭代
     instance = instance.return;
   }
   return listeners;
@@ -1266,38 +1282,63 @@ function getLowestCommonAncestor(instA: Fiber, instB: Fiber): Fiber | null {
   return null;
 }
 
+// 收集目标节点dom树链路上已经节点链路上的所有鼠标移出事件监听器，放入为委托队列中
 function accumulateEnterLeaveListenersForEvent(
+  // 事件委托队列
   dispatchQueue: DispatchQueue,
+  // 合成事件对象
+  // 当前为鼠标移入或移出事件的合成对象
   event: KnownReactSyntheticEvent,
+  // 目标fiber节点，可能是事件的从或至节点
   target: Fiber,
+  // 事件从跟至节点的公共最近祖宗fiber节点
   common: Fiber | null,
+  // 是否捕获阶段
   inCapturePhase: boolean,
 ): void {
+  // 获取事件的react名，也就是react的on*属性名，如onClick
   const registrationName = event._reactName;
+  // 初始化监听器列表
   const listeners: Array<DispatchListener> = [];
 
+  // 初始化循环实例，已当前目标节点为起始
   let instance = target;
+  // 进入循环，遍历当前目标节点的祖先节点，直至到公共节点时才退出循环
+  // 循环的过程中，收集是原生组件的节点中存储的当前事件对应的监听器
   while (instance !== null) {
+    // 遍历到了从至公共节点时，退出循环
     if (instance === common) {
       break;
     }
+    // 如果当前节点对应的工作节点是公共节点时，退出循环
     const {alternate, stateNode, tag} = instance;
     if (alternate !== null && alternate === common) {
       break;
     }
-    // HostComponent: 原生组件
+    // 如果当前节点时原生dom对应的fiber节点，且dom对象不为空
     if (tag === HostComponent && stateNode !== null) {
+      // 获取dom对象
       const currentTarget = stateNode;
+      // 处理捕获阶段
       if (inCapturePhase) {
+        // 获取fiber对象对应的dom节点中获取对应事件的监听器
         const captureListener = getListener(instance, registrationName);
+        // 如果存在监听器
         if (captureListener != null) {
+          // 加在监听器最前面
+          // 那么对于整个祖先节点的遍历来说，dom越靠近跟节点的监听器越靠前，也就是越先被处理，从而实现捕获(广播)
           listeners.unshift(
             createDispatchListener(instance, captureListener, currentTarget),
           );
         }
-      } else if (!inCapturePhase) {
+      }
+      // 处理冒泡阶段
+      else if (!inCapturePhase) {
+        // 跟上面一样
         const bubbleListener = getListener(instance, registrationName);
         if (bubbleListener != null) {
+          // 冒泡放在列表后面
+          // 那么对于整个祖先节点的遍历来说，dom越远离跟节点的监听器越靠前，也就是越先被处理，从而实现冒泡
           listeners.push(
             createDispatchListener(instance, bubbleListener, currentTarget),
           );
@@ -1306,6 +1347,7 @@ function accumulateEnterLeaveListenersForEvent(
     }
     instance = instance.return;
   }
+  // 如果存在监听器，那么将合情事件和监听器列表放入委托队列中
   if (listeners.length !== 0) {
     dispatchQueue.push({event, listeners});
   }
@@ -1316,16 +1358,31 @@ function accumulateEnterLeaveListenersForEvent(
 // This is because we only process this plugin
 // in the bubble phase, so we need to accumulate two
 // phase event listeners.
+
+// 翻译:
+// 我们应该只将此功能用于：
+// - EnterLeaveEventPlugin
+// 这是因为我们只在冒泡阶段处理这个插件，所以我们需要积累两个阶段的事件监听器。
+
+// 收集目标节点dom树链路上已经节点链路上的所有鼠标移出移入事件监听器，放入为委托队列中
 export function accumulateEnterLeaveTwoPhaseListeners(
+  // 事件委托队列
   dispatchQueue: DispatchQueue,
+  // 鼠标移出合成事件对象
   leaveEvent: KnownReactSyntheticEvent,
+  // 鼠标移入合同事件对象
   enterEvent: null | KnownReactSyntheticEvent,
+  // 事件开始时节点
   from: Fiber | null,
+  // 事件结束时节点
   to: Fiber | null,
 ): void {
+  // 得到开始结束节点最低等级的一个公共祖先节点
   const common = from && to ? getLowestCommonAncestor(from, to) : null;
 
+  // 如果事件开始节点不为空
   if (from !== null) {
+    // 收集目标节点dom树链路上已经节点链路上的所有鼠标移出事件监听器，放入为委托队列中
     accumulateEnterLeaveListenersForEvent(
       dispatchQueue,
       leaveEvent,
@@ -1334,7 +1391,10 @@ export function accumulateEnterLeaveTwoPhaseListeners(
       false,
     );
   }
+  // 如果事件结束时对应的fiber节点不为空，且鼠标进入事件不为空
+  // 收集目标节点dom输链路上已经节点链路上的所有鼠标进入事件监听器，放入为委托队列中
   if (to !== null && enterEvent !== null) {
+    // TODO: 为什么鼠标移入事件是捕获，移出是冒泡？
     accumulateEnterLeaveListenersForEvent(
       dispatchQueue,
       enterEvent,

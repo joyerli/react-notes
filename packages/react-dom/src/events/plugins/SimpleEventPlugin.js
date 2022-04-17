@@ -49,7 +49,7 @@ import {IS_CAPTURE_PHASE} from '../EventSystemFlags';
 
 import {enableCreateEventHandleAPI} from 'shared/ReactFeatureFlags';
 
-// 抽取事件
+// 处理事件
 function extractEvents(
   // 事件待触发队列
   dispatchQueue: DispatchQueue,
@@ -81,7 +81,7 @@ function extractEvents(
   let SyntheticEventCtor = SyntheticEvent;
   // 事件类型，初始值为原生的事件名
   let reactEventType: string = domEventName;
-  // 根据时间名，设置不同的事件类型和合成事件处理器
+  // 根据事件名判断合成事件类型
   switch (domEventName) {
     case 'keypress':
       // Firefox creates a keypress event for function keys too. This removes
@@ -193,7 +193,8 @@ function extractEvents(
     enableCreateEventHandleAPI &&
     eventSystemFlags & IS_EVENT_HANDLE_NON_MANAGED_NODE
   ) {
-    // 获取在dom对象上保存的监听队列
+    // 收集监听器列表(不能使用委托的模式)
+    // 将对应dom元素的dom树跟fiber树对应的事件监听器抽取到委托队列中。
     const listeners = accumulateEventHandleNonManagedNodeListeners(
       // TODO: this cast may not make sense for events like
       // "focus" where React listens to e.g. "focusin".
@@ -255,9 +256,8 @@ function extractEvents(
       // 然后我们可以删除这个特殊列表。 这是一个可以等到 React 18 的重大更改。
       domEventName === 'scroll';
 
-    // 创建监听列表（积累单阶段监听器）
-    // TODO: ll accumulateSinglePhaseListeners
-    // FIXME: 下沉 15
+    // 收集监听器列表(冒泡阶段)
+    // 将对应dom元素的dom树跟fiber树对应的事件监听器抽取到委托队列中。
     const listeners = accumulateSinglePhaseListeners(
       // 目标fiber节点
       targetInst,
@@ -270,10 +270,12 @@ function extractEvents(
       // 是否仅仅是累积目标
       accumulateTargetOnly,
     );
+    // 如果存在监听列表
     if (listeners.length > 0) {
       // Intentionally create event lazily.
       // 翻译：懒加载创建事件对象
 
+      // 创建一个合成事件
       const event = new SyntheticEventCtor(
         reactName,
         reactEventType,
@@ -281,6 +283,9 @@ function extractEvents(
         nativeEvent,
         nativeEventTarget,
       );
+      // 触发队列中塞入事件对象和接听器的映射关系。
+      // 注意这里一个重要的点:
+      // 只有一个事件对象对应多个事件处理器，这是react为了提高性能，采用的复合事件。
       dispatchQueue.push({event, listeners});
     }
   }
