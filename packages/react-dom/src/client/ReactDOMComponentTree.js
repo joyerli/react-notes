@@ -289,6 +289,7 @@ export function updateFiberProps(
   (node: any)[internalPropsKey] = props;
 }
 
+// 获取节点中的监听器集合
 // 目标元素, html元素(node节点)
 // ==> 基本为react挂在的容器dom节点
 export function getEventListenerSet(node: EventTarget): Set<string> {

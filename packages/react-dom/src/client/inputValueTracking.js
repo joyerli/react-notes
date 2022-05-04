@@ -112,24 +112,35 @@ export function track(node: ElementWithValueTracker) {
   node._valueTracker = trackValueOnNode(node);
 }
 
+// 判断change事件中的监听的值是否发生改变。
 export function updateValueIfChanged(node: ElementWithValueTracker) {
+  // 无节点范围false
   if (!node) {
     return false;
   }
 
+  // 获取设置在dom节点上的钩子(跟踪器)， 设置在dom节点的_valueTracker属性上
   const tracker = getTracker(node);
   // if there is no tracker at this point it's unlikely
   // that trying again will succeed
+  // 如果此时没有跟踪器，则再次尝试不太可能成功
+
+  // 如果没有挂载跟踪器，那么认定他是被改变了
   if (!tracker) {
     return true;
   }
 
+  // 获取变更前的值
   const lastValue = tracker.getValue();
+  // 获取此时的值
   const nextValue = getValueFromNode(node);
+  // 如果值发生了变化
   if (nextValue !== lastValue) {
+    // 跟踪器记录值，返回值被更新
     tracker.setValue(nextValue);
     return true;
   }
+  // 值没有被更新
   return false;
 }
 

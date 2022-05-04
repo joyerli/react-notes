@@ -104,6 +104,8 @@ export function markTaskCompleted(
   }
 }
 
+// 标记task取消
+// 实际为如果开启追踪，输出取消日志
 export function markTaskCanceled(
   task: {
     id: number,

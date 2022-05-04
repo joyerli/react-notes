@@ -17,12 +17,21 @@
  *
  */
 
+// 翻译：
+// 这些变量存储有关目标节点的文本内容的信息，允许比较给定事件之前和之后的内容。
+
+// 识别当前开始选择的节点，然后观察其文本内容及其在 DOM 中的当前位置。
+// 由于浏览器在合成过程中可能会原生替换目标节点，我们可以使用它的位置来找到它的替换。
+
 let root = null;
 let startText = null;
 let fallbackText = null;
 
+// 初始化低版本ie的Composition事件
 export function initialize(nativeEventTarget) {
+  // 存储原生事件对象的target节点对象
   root = nativeEventTarget;
+  // 获取开始时的文本，从元素的value值或者textContent中获取
   startText = getText();
   return true;
 }
@@ -33,7 +42,10 @@ export function reset() {
   fallbackText = null;
 }
 
+// 获取低版本ie Composition事件过程中的正在输入的文本
+// 也就是模拟Composition事件的的data属性
 export function getData() {
+  // 如果存在存储的值，则直接返回
   if (fallbackText) {
     return fallbackText;
   }
@@ -63,6 +75,7 @@ export function getData() {
   return fallbackText;
 }
 
+// 获取开始时的值
 export function getText() {
   if ('value' in root) {
     return root.value;

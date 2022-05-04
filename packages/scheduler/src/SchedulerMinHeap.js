@@ -13,12 +13,16 @@ type Node = {|
   sortIndex: number,
 |};
 
+// 将节点压入到一个队列，并对节点进行排序
 export function push(heap: Heap, node: Node): void {
   const index = heap.length;
   heap.push(node);
+  // 重新排序
   siftUp(heap, node, index);
 }
 
+// 获取队头元素
+// 注意跟pop是有区别的，不会改变队列值
 export function peek(heap: Heap): Node | null {
   const first = heap[0];
   return first === undefined ? null : first;
@@ -38,6 +42,7 @@ export function pop(heap: Heap): Node | null {
   }
 }
 
+// 重新排序
 function siftUp(heap, node, i) {
   let index = i;
   while (true) {

@@ -31,7 +31,7 @@ export const topLevelEventsToReactNames: Map<
   string | null,
 > = new Map();
 
-// 事件的优先级
+// 事件的优先级配置表
 const eventPriorities = new Map();
 
 // We store most of the events in this module in pairs of two strings so we can re-use
@@ -110,6 +110,7 @@ if (enableCreateEventHandleAPI) {
 }
 
 // 用户阻塞事件，术语UI Event
+// 简单的用户界面事件。
 // prettier-ignore
 const userBlockingPairsForSimpleEventPlugin: Array<string | DOMEventName> = [
   ('drag': DOMEventName), 'drag',
@@ -220,13 +221,19 @@ function setEventPriorities(
   }
 }
 
+// 获取一个事件的优先级
 export function getEventPriorityForPluginSystem(
   domEventName: DOMEventName,
 ): EventPriority {
+  // 根据事件属性配置信息，获取优先级
+  // DiscreteEvent: 0, UserBlockingEvent: 1, ContinuousEvent: 2
   const priority = eventPriorities.get(domEventName);
   // Default to a ContinuousEvent. Note: we might
   // want to warn if we can't detect the priority
   // for the event.
+  // 默认为连续事件。 注意：如果我们无法检测到事件的优先级，我们可能想要发出警告。
+
+  // 默认为连续事件的优先级
   return priority === undefined ? ContinuousEvent : priority;
 }
 

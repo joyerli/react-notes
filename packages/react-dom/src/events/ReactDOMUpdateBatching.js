@@ -42,6 +42,7 @@ let flushDiscreteUpdatesImpl = function() {};
 // 允许事件插件做改变
 let batchedEventUpdatesImpl = batchedUpdatesImpl;
 
+// 当前是否正在处理事件
 let isInsideEventHandler = false;
 let isBatchingEventUpdates = false;
 
@@ -75,17 +76,26 @@ function finishEventHandler() {
   }
 }
 
+// 批量更新
 export function batchedUpdates(fn, bookkeeping) {
+  // 如果当前正在处理事件， 直接调用回掉函数处理事件委托队列
   if (isInsideEventHandler) {
     // If we are currently inside another batch, we need to wait until it
     // fully completes before restoring state.
+    // 翻译：
+    // 如果我们当前在另一个批次中，我们需要等到它完全完成才能恢复状态。
     return fn(bookkeeping);
   }
+  // 如果当前不是处于正在处理事件中，开始处理事件，将isInsideEventHandler标记为true，代表当前处于事件处理过程中
   isInsideEventHandler = true;
   try {
+    // 批量事件更新
     return batchedUpdatesImpl(fn, bookkeeping);
   } finally {
+    // 处理完成后，重制标记
     isInsideEventHandler = false;
+    // 完成事件处理后的扫尾工作
+    // 一般都是一些fiber节点需要在事件处理完成后，进行状态恢复
     finishEventHandler();
   }
 }
@@ -116,7 +126,8 @@ export function batchedEventUpdates(fn, a, b) {
   }
 }
 
-// 离散更新
+// 离散事件更新(离散事件的触发)
+// 保证在执行的时候，标记为执行中，避免其他逻辑执行
 // 离散的含义可以初步理解为非批量
 export function discreteUpdates(fn, a, b, c, d) {
   // 保存之前是否在处理事件
@@ -125,7 +136,8 @@ export function discreteUpdates(fn, a, b, c, d) {
   isInsideEventHandler = true;
   try {
     // 执行离散更新实现
-    // 当前就是直接调用
+    // 默认是直接调用
+    // 当前是使用 react-reconciler/src/ReactFiberWorkLoop.old.js中的discreteUpdates
     return discreteUpdatesImpl(fn, a, b, c, d);
   } finally {
     // 恢复isInsideEventHandler 为之前的值

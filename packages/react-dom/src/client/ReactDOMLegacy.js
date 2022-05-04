@@ -272,7 +272,8 @@ function legacyRenderSubtreeIntoContainer(
 
     // 不批量更新， unbatchedUpdates会在执行updateContainer之前进行一些状态初始化，执行后，进行一些清理操作。
     unbatchedUpdates(() => {
-      // 更新容器, TODO: updateContainer
+      // 更新容器,
+      // TODO: ll updateContainer
       updateContainer(children, fiberRoot, parentComponent, callback);
     });
   } else {
@@ -294,7 +295,7 @@ function legacyRenderSubtreeIntoContainer(
   }
 
   // 返回公共根节点实例，该操作下后续迭代可能会被优化，应该使用回调函数获取该信息
-  TODO: getPublicRootInstance
+  // TODO: ll getPublicRootInstance
   return getPublicRootInstance(fiberRoot);
 }
 

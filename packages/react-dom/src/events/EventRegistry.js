@@ -33,6 +33,7 @@ export const possibleRegistrationNames = __DEV__ ? {} : (null: any);
 // Trust the developer to only use possibleRegistrationNames in __DEV__
 
 // 注册事件到两个阶段
+// 捕获和冒泡，其中冒泡就是原事件名，捕获添加Capture后缀
 export function registerTwoPhaseEvent(
   // 注册名, react事件属性名，如onClick
   registrationName: string,
@@ -69,7 +70,7 @@ export function registerDirectEvent(
   if (__DEV__) {
     const lowerCasedName = registrationName.toLowerCase();
     // 可能的注册信息映射表
-    // TODO: ll 所以其实react中的事件属性on其实是大小写不敏感的？
+    // TODO: 所以其实react中的事件属性on其实是大小写不敏感的？
     possibleRegistrationNames[lowerCasedName] = registrationName;
 
     // 特殊处理onDoubleClick，因为他还可能是ondblclick

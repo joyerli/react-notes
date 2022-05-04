@@ -309,11 +309,16 @@ const FALLBACK_THROTTLE_MS: number = 500;
 
 // The absolute time for when we should start giving up on rendering
 // more and prefer CPU suspense heuristics instead.
+// 翻译 我们应该开始放弃更多渲染并改用 CPU 悬念启发式算法的绝对时间。
+
 let workInProgressRootRenderTargetTime: number = Infinity;
 // How long a render is supposed to take before we start following CPU
 // suspense heuristics and opt out of rendering more content.
+// 翻译： 在我们开始遵循 CPU 悬念启发式算法并选择不渲染更多内容之前，渲染应该花费多长时间。s
+
 const RENDER_TIMEOUT_MS = 500;
 
+// 重置渲染时间，更新时间戳
 function resetRenderTimer() {
   workInProgressRootRenderTargetTime = now() + RENDER_TIMEOUT_MS;
 }
@@ -1175,40 +1180,62 @@ export function batchedEventUpdates<A, R>(fn: A => R, a: A): R {
   }
 }
 
+// 离散事件更新
+// react框架中，触发离散事件的触发器
 export function discreteUpdates<A, B, C, D, R>(
+  // 实际执行函数
   fn: (A, B, C) => R,
   a: A,
   b: B,
   c: C,
   d: D,
 ): R {
+  // 保存当前上下文对象
   const prevExecutionContext = executionContext;
+  // 添加DiscreteEventContext到executionContext标记中
+  // 也就是表明当前正在处理离散事件
   executionContext |= DiscreteEventContext;
 
+  // 如果要固定执行事件触发时的优先级的话
   if (decoupleUpdatePriorityFromScheduler) {
+    // 保存当前车道的优先级
     const previousLanePriority = getCurrentUpdateLanePriority();
     try {
+      // 固定当前修改车道的优先级为InputDiscreteLanePriority（12）
       setCurrentUpdateLanePriority(InputDiscreteLanePriority);
+      // 运行毁掉函数，也就是触发事件执行
       return runWithPriority(
+        // 固定优先级为UserBlockingSchedulerPriority(98)
         UserBlockingSchedulerPriority,
         fn.bind(null, a, b, c, d),
       );
     } finally {
+      // 执行完成后，恢复车道
       setCurrentUpdateLanePriority(previousLanePriority);
+      // 恢复调度器执行上下文
       executionContext = prevExecutionContext;
+      // 如果当前没有其他的调度任务
       if (executionContext === NoContext) {
         // Flush the immediate callbacks that were scheduled during this batch
+        // 刷新在此批处理期间安排的即时回调
+
+        // 刷新渲染时间
         resetRenderTimer();
+        // 刷新同步回调队列
+        // TODO: ll flushSyncCallbackQueue
+        // FIXME: 下沉 4
         flushSyncCallbackQueue();
       }
     }
   } else {
     try {
+      // 运行毁掉函数，也就是触发事件执行
       return runWithPriority(
         UserBlockingSchedulerPriority,
         fn.bind(null, a, b, c, d),
       );
     } finally {
+      // 同样恢复操作
       executionContext = prevExecutionContext;
       if (executionContext === NoContext) {
         // Flush the immediate callbacks that were scheduled during this batch

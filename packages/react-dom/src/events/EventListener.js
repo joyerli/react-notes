@@ -7,6 +7,7 @@
  * @flow
  */
 
+// 添加一个事件，在冒泡阶段
 export function addEventBubbleListener(
   target: EventTarget,
   eventType: string,
@@ -25,6 +26,7 @@ export function addEventCaptureListener(
   return listener;
 }
 
+// 添加一个事件，添加到捕获阶段，且设置Passive选项
 export function addEventCaptureListenerWithPassiveFlag(
   target: EventTarget,
   eventType: string,
@@ -38,6 +40,7 @@ export function addEventCaptureListenerWithPassiveFlag(
   return listener;
 }
 
+添加一个事件，在冒泡阶段，且设置Passive选项
 export function addEventBubbleListenerWithPassiveFlag(
   target: EventTarget,
   eventType: string,

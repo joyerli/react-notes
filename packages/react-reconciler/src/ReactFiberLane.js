@@ -106,10 +106,12 @@ export const NoTimestamp = -1;
 
 let currentUpdateLanePriority: LanePriority = NoLanePriority;
 
+// 获取当前更新车道的优先级
 export function getCurrentUpdateLanePriority(): LanePriority {
   return currentUpdateLanePriority;
 }
 
+// 设置当前更新车道的优先级
 export function setCurrentUpdateLanePriority(newLanePriority: LanePriority) {
   currentUpdateLanePriority = newLanePriority;
 }

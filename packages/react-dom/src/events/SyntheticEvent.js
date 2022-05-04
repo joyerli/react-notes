@@ -110,7 +110,7 @@ function createSyntheticEvent(Interface: EventInterfaceType) {
       this.isDefaultPrevented = functionThatReturnsFalse;
     }
     // 将事件是否执行停止冒泡(stopPropagation)设置为默认永远返回false
-    // TODO: ll 这里为什么不考虑原生的事件已经被停止冒泡过了呢，为什么defaultPrevented要判断
+    // TODO: 这里为什么不考虑原生的事件已经被停止冒泡过了呢，为什么defaultPrevented要判断
     this.isPropagationStopped = functionThatReturnsFalse;
     return this;
   }

@@ -150,7 +150,7 @@ function getContextForSubtree(
     const Component = fiber.type;
     // TODO: 是否是传统的上下文提供
     if (isLegacyContextProvider(Component)) {
-      // TODO: processChildContext
+      // TODO: ll processChildContext
       return processChildContext(fiber, Component, parentContext);
     }
   }
@@ -274,12 +274,13 @@ export function updateContainer(
   callback: ?Function,
 ): Lane {
   if (__DEV__) {
-    // TODO: onScheduleRoot
+    // TODO: ll onScheduleRoot
     onScheduleRoot(container, element);
   }
   // TODO: 从createContainer中阅读current
   const current = container.current;
-  // 获取事件时间, TODO: requestEventTime的真实意思
+  // 获取事件时间,
+  // TODO: ll requestEventTime的真实意思
   const eventTime = requestEventTime();
   if (__DEV__) {
     // $FlowExpectedError - jest isn't a global, and isn't recognized outside of tests
@@ -290,8 +291,7 @@ export function updateContainer(
       warnIfNotScopedWithMatchingAct(current);
     }
   }
-  // TODO: 理解lane含义
-  // 临时可以理解为当前渲染的通道，为了支持后续的并发渲染
+  // 当前渲染的通道(通道)，调度器调度概念，为了支持后续的并发渲染
   const lane = requestUpdateLane(current);
 
   // 调试性能分析工具支持
@@ -331,7 +331,8 @@ export function updateContainer(
     }
   }
 
-  // TODO: 创建更新对象，一个记录更新的数据结构
+  // 创建更新对象，一个记录更新的数据结构
+  // TODO: ll createUpdate
   const update = createUpdate(eventTime, lane);
   // Caution: React DevTools currently depends on this property
   // being called "element".
@@ -355,9 +356,11 @@ export function updateContainer(
     update.callback = callback;
   }
 
-  // 进入更新队列， TODO: 查看底层
+  // 进入更新队列
+  // TODO: ll enqueueUpdate
   enqueueUpdate(current, update);
-  // 使用fiber更新调度器， TODO: 查看底层
+  // 使用fiber更新调度器
+  // TODO: ll scheduleUpdateOnFiber
   scheduleUpdateOnFiber(current, lane, eventTime);
 
   return lane;

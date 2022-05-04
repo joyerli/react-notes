@@ -28,6 +28,7 @@ const supportedInputTypes: {[key: string]: true | void, ...} = {
   week: true,
 };
 
+// 判断元素是否是文本输入节点
 function isTextInputElement(elem: ?HTMLElement): boolean {
   const nodeName = elem && elem.nodeName && elem.nodeName.toLowerCase();
 

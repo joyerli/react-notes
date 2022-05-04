@@ -100,6 +100,32 @@ export function createEventListenerWrapper(
 }
 
 // 创建具有优先级的事件侦听器包装器
+
+/**
+ * 这里涉及到react中事件分类：离散事件，用户界面阻塞事件，连续事件
+ * 离散事件包括：
+ *  cancel, click, close, contextmenu, copy, cut, auxclick, dblclick, dragend,
+ *  dragstart, drop, focusin, focusout, input, invalid, keydown, keypress,
+ *  keyup, mousedown, mouseup, paste, pause, play, pointercancel, pointerdown,
+ *  pointerup, ratechange, reset, seeked, submit, touchcancel, touchend,
+ *  touchstart, volumechange, change, selectionchange, textInput, compositionstart,
+ *  compositionend, compositionupdate,
+ * 用户界面阻塞事件：
+ *  drag, dragenter, dragexit, dragleave, dragover, mousemove, mouseout, mouseover,
+ *  pointermove, pointerout, pointerover, scroll, toggle, touchmove, wheel
+ * 连续事件：
+ *  abort,animationend,animationiteration,animationstart,transitionend,canplay,
+ *  canplaythrough,durationchange,emptied,encrypted,ended,error,gotpointercapture,
+ *  load,loadeddata,loadedmetadata,loadstart,lostpointercapture,playing,
+ *  progress,seeking,stalled,suspend,timeupdate,waiting
+ * 对于不同的事件，委托事件中触发事件的方式是不一样的：
+ * 离散事件：使用discreteUpdates实现，这在不同的react框架(react-native, react)上是不一样的，
+ *   react-dom框架下使用react-reconciler/src/ReactFiberWorkLoop.old.js的discreteUpdates函数。
+ *   基本跟用户界面阻塞事件事件逻辑一致，多了一些标记和执行后清除操作。
+ * 用户界面阻塞事件: 使用Scheduler的runWithPriority实现
+ * 连续事件（和其他）: 不实用调度器，直接触发事件
+ */
+
 export function createEventListenerWrapperWithPriority(
   // 需要添加时间的dom节点
   // => 基本为react挂在的节点
@@ -110,24 +136,23 @@ export function createEventListenerWrapperWithPriority(
   // => 0
   eventSystemFlags: EventSystemFlags,
 ): Function {
-  // 获取事件优先级, 这里根据浏览器的事件系统来获取
-  // TODO: getEventPriorityForPluginSystem
+  // 获取事件优先级,
+  // DiscreteEvent: 0, UserBlockingEvent: 1, ContinuousEvent: 2
   const eventPriority = getEventPriorityForPluginSystem(domEventName);
   // 根据事件优先级设置不同的监听函数
   let listenerWrapper;
   switch (eventPriority) {
     case DiscreteEvent:
-      // TODO: dispatchDiscreteEvent
-      // FIXME: 下沉 8
+      // 创建一个监听器，这个监听器使用委托的机制去触发一个离散事件
       listenerWrapper = dispatchDiscreteEvent;
       break;
     case UserBlockingEvent:
-      // TODO: dispatchUserBlockingUpdate
+      // 创建一个监听器，这个监听器使用委托的机制去触发一个用户界面阻塞事件
       listenerWrapper = dispatchUserBlockingUpdate;
       break;
     case ContinuousEvent:
     default:
-      // TODO: dispatchUserBlockingUpdate
+      // 直接触发事件
       listenerWrapper = dispatchEvent;
       break;
   }
@@ -164,11 +189,9 @@ function dispatchDiscreteEvent(
   ) {
     flushDiscreteUpdatesIfNeeded(nativeEvent.timeStamp);
   }
-  // 安全的执行事件监听器
+  // 安全的触发事件
   discreteUpdates(
-    // 调度事件，实际的事件监听函数
-    // TODO: dispatchEvent
-    // FIXME: 下沉 9
+    // 触发事件，实际逻辑
     dispatchEvent,
     // 事件名
     domEventName,
@@ -183,19 +206,33 @@ function dispatchDiscreteEvent(
   );
 }
 
+// 触发用户界面阻塞事件
 function dispatchUserBlockingUpdate(
+  // 原生事件名
   domEventName,
+  // 事件系统标记
   eventSystemFlags,
+  // 触发容器，委托事件的的事件触发dom节点，一般为react的挂载节点
   container,
+  // 原生的事件对象
   nativeEvent,
 ) {
+  // 是否替换 React 内部的 runWithPriority。 当前配置为false
+  // 是否修改优先级的方式执行，以一个固定的优先级执行
   if (decoupleUpdatePriorityFromScheduler) {
+    // 获取当前更新车道优先级
     const previousPriority = getCurrentUpdateLanePriority();
     try {
       // TODO: Double wrapping is necessary while we decouple Scheduler priority.
+      // 翻译： 当我们解耦调度器优先级时，双重包装是必要的。
+
+      // 设置当前更新车道的优先级
+      // InputContinuousLanePriority的值是10, 默认是0
       setCurrentUpdateLanePriority(InputContinuousLanePriority);
+      // 支持优先级的方式运行
       runWithPriority(
         UserBlockingPriority,
+        // 触发事件
         dispatchEvent.bind(
           null,
           domEventName,
@@ -205,11 +242,16 @@ function dispatchUserBlockingUpdate(
         ),
       );
     } finally {
+      // 执行完成后，恢复车道的优先级
       setCurrentUpdateLanePriority(previousPriority);
     }
   } else {
+    // 支持优先级的方式运行
+    // 内部在执行传入进去的回掉函数过程中，维持调度的优先级为UserBlockingPriority，
     runWithPriority(
+      // 2
       UserBlockingPriority,
+      // 触发事件
       dispatchEvent.bind(
         null,
         domEventName,
@@ -221,6 +263,8 @@ function dispatchUserBlockingUpdate(
   }
 }
 
+// 触发单个事件
+// 该函数中的离散事件的概念，包含了所有的事件。
 export function dispatchEvent(
   // 事件名
   domEventName: DOMEventName,
@@ -238,6 +282,8 @@ export function dispatchEvent(
     return;
   }
   // 是否允许重复
+  // TODO: 可重复的事件，个人理解为可以延后触发的事件。
+  // 因为此时可能react还在初始化，等待初始化完成后，由调度器重新出发事件。
   let allowReplay = true;
   // 是否启用根侦听器
   if (enableEagerRootListeners) {
@@ -257,9 +303,11 @@ export function dispatchEvent(
     allowReplay = (eventSystemFlags & IS_CAPTURE_PHASE) === 0;
   }
   if (
-    // 允许重复
+    // 允许重放
     allowReplay &&
     // 是否有离散事件队列
+    // 注意这个判断(下文的源码注释说明)，如果队列中存在数据，证明上一次执行的时候，
+    // 已经发现直接触发事件被阻塞然后塞入等待队列了。
     hasQueuedDiscreteEvents() &&
     // 是可重放的离散事件
     // 下面事件之一：
@@ -296,10 +344,11 @@ export function dispatchEvent(
     return;
   }
 
-  // 尝试调度事件
-  // TODO: attemptToDispatchEvent
-  // TODO: blockedOn含义
-  // FIXME: 下沉 10
+  // 尝试触发单个事件
+  // 在某些情况下，触发事件会失败，此时返回边界dom节点
+  // - 在Suspense组件内的渲染
+  // - ssr渲染
+  // 所以blockedOn为不执行时返回的边界dom节点
   const blockedOn = attemptToDispatchEvent(
     // 事件名
     domEventName,
@@ -313,27 +362,30 @@ export function dispatchEvent(
     nativeEvent,
   );
 
+  // 如果没有阻塞的dom节点，证明执行过事件
+  // 此时就要进行一些数据清理
   if (blockedOn === null) {
     // We successfully dispatched this event.
     // 翻译：我们成功发送了这个事件。
 
+    // 清理以前被阻塞时的一些可以重复的事件列表
+    // 此次之行事件应该都已经触发，所以清空
     if (allowReplay) {
-      // 清除连续事件
-      // TODO: clearIfContinuousEvent
+      // 可以重复触发(延缓触发)的连续事件队列中清除这个事件
+      // 连续事件(Continuous)指的是会组合触发的事件，如dragenter, dragleave这种组合
       clearIfContinuousEvent(domEventName, nativeEvent);
     }
     return;
   }
 
+  // 被阻塞，但是支持重放(延后触发)的事件，进行队列存储，等待调度器执行
   if (allowReplay) {
-    // 是可重放的离散事件
-    // TODO: isReplayableDiscreteEvent
+    // 是可重放的事件
     if (isReplayableDiscreteEvent(domEventName)) {
       // This this to be replayed later once the target is available.
       // 翻译：一旦目标可用，这将在稍后重播。
 
       // 将当前的离散事件放入队列中，等待后续重复执行
-      // TODO: queueDiscreteEvent
       queueDiscreteEvent(
         blockedOn,
         domEventName,
@@ -343,10 +395,10 @@ export function dispatchEvent(
       );
       return;
     }
-    // 押入连续事件队列成功
+    // 压入连续可重复事件队列成功
     if (
-      // 押入连续事件队列
-      // TODO: queueIfContinuousEvent
+      // 压入连续事件队列
+      // 只有事件focusin，dragenter，mouseover，pointerover，gotpointercapture组合事件开始时事件可以压入成功，其他会失败
       queueIfContinuousEvent(
         blockedOn,
         domEventName,
@@ -362,7 +414,8 @@ export function dispatchEvent(
 
     // 翻译：仅当我们没有排队时才需要清除，因为排队是累积的。
 
-    // 当压入队列不成功时，清除连续事件
+    // 当压入队列不成功时，在可重复的离散事件队列中清除这个事件
+    // 主要是清除当一个连续事件在到结束后，需要清除这个事件的保存的开始事件
     clearIfContinuousEvent(domEventName, nativeEvent);
   }
 
@@ -371,8 +424,7 @@ export function dispatchEvent(
 
   // 翻译：这是不可重放的，所以我们将调用它但没有目标，以防事件系统需要跟踪它。
 
-  // 在事件插件系统中调用事件，其他插件扩展中调用事件
-  // TODO: dispatchEventForPluginEventSystem
+  // 如果是不可以重放的事件，再次强制触发事件
   dispatchEventForPluginEventSystem(
     domEventName,
     eventSystemFlags,
@@ -386,8 +438,10 @@ export function dispatchEvent(
 // 翻译：
 // 尝试调度事件。 如果被阻塞，则返回 SuspenseInstance 或 Container。
 
-// 尝试调度事件
-// 在某些情况下，就返回边界dom节点，如Suspense组件内的渲染，hydrate渲染
+// 尝试触发事件
+// 在某些情况下，不会进行执行事件，且返回边界dom节点
+// - 在Suspense组件内的渲染
+// - ssr渲染
 export function attemptToDispatchEvent(
   // 事件名
   domEventName: DOMEventName,
@@ -473,8 +527,6 @@ export function attemptToDispatchEvent(
     }
   }
   // 在事件插件系统中调用事件
-  // TODO:  dispatchEventForPluginEventSystem
-  // FIXME: 下沉 11
   dispatchEventForPluginEventSystem(
     // 事件名
     domEventName,

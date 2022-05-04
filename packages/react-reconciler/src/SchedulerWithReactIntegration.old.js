@@ -165,27 +165,42 @@ export function cancelCallback(callbackNode: mixed) {
   }
 }
 
+// 刷新同步回调队列
 export function flushSyncCallbackQueue() {
+  // 即时反馈任务队列任务如果不为空
   if (immediateQueueCallbackNode !== null) {
     const node = immediateQueueCallbackNode;
+    // 清空
     immediateQueueCallbackNode = null;
+    // 取消任务
     Scheduler_cancelCallback(node);
   }
+  // 刷新同步回调队列
   flushSyncCallbackQueueImpl();
 }
 
+// 刷新同步回调队列
 function flushSyncCallbackQueueImpl() {
+  // 当前不在刷新同步队列，且同步队列中的任务不为空
   if (!isFlushingSyncQueue && syncQueue !== null) {
     // Prevent re-entrancy.
+    // 防止重复进入
+    // 当前当前正在处理刷新同步队列
     isFlushingSyncQueue = true;
     let i = 0;
+
+    // 如果开启固定优先级执行任务
     if (decoupleUpdatePriorityFromScheduler) {
+      // 保存当前的优先级
       const previousLanePriority = getCurrentUpdateLanePriority();
       try {
         const isSync = true;
         const queue = syncQueue;
+        // 设置固定的当前更新通道的优先级为SyncLanePriority(15)
         setCurrentUpdateLanePriority(SyncLanePriority);
+        // 设置优先级，执行任务
         runWithPriority(ImmediatePriority, () => {
+          // 依次执行同步队列
           for (; i < queue.length; i++) {
             let callback = queue[i];
             do {
@@ -193,19 +208,29 @@ function flushSyncCallbackQueueImpl() {
             } while (callback !== null);
           }
         });
+        // 执行完成后，清空队列
         syncQueue = null;
       } catch (error) {
         // If something throws, leave the remaining callbacks on the queue.
+        // 翻译：如果发生异常，请将剩余的回调留在队列中。
+
         if (syncQueue !== null) {
           syncQueue = syncQueue.slice(i + 1);
         }
         // Resume flushing in the next tick
+        // 翻译：在下一个tick中恢复刷新
+
+        // 添加调度器任务
+        // TODO: ll Scheduler_scheduleCallback
+        // FIXME: 下沉 5
         Scheduler_scheduleCallback(
           Scheduler_ImmediatePriority,
           flushSyncCallbackQueue,
         );
+        // 抛出异常
         throw error;
       } finally {
+        // 恢复状态
         setCurrentUpdateLanePriority(previousLanePriority);
         isFlushingSyncQueue = false;
       }
@@ -213,6 +238,7 @@ function flushSyncCallbackQueueImpl() {
       try {
         const isSync = true;
         const queue = syncQueue;
+        // 执行任务，优先级为最高级，需要即时反馈
         runWithPriority(ImmediatePriority, () => {
           for (; i < queue.length; i++) {
             let callback = queue[i];
@@ -221,19 +247,25 @@ function flushSyncCallbackQueueImpl() {
             } while (callback !== null);
           }
         });
+        // 清空队列
         syncQueue = null;
       } catch (error) {
         // If something throws, leave the remaining callbacks on the queue.
+        // 翻译：如果发生异常，请将剩余的回调留在队列中。
+
         if (syncQueue !== null) {
           syncQueue = syncQueue.slice(i + 1);
         }
         // Resume flushing in the next tick
+        // 翻译：在下一个tick中恢复刷新
+
         Scheduler_scheduleCallback(
           Scheduler_ImmediatePriority,
           flushSyncCallbackQueue,
         );
         throw error;
       } finally {
+        // 恢复状态
         isFlushingSyncQueue = false;
       }
     }

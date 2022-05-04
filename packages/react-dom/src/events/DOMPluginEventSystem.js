@@ -92,7 +92,8 @@ ChangeEventPlugin.registerEvents();
 SelectEventPlugin.registerEvents();
 BeforeInputEventPlugin.registerEvents();
 
-// 抽取事件
+// 抽取指定名字的事件对应的委托队列
+// 一般情况会兼容老版本浏览器
 function extractEvents(
   // 事件待触发队列
   dispatchQueue: DispatchQueue,
@@ -121,9 +122,9 @@ function extractEvents(
   // 所有其他插件本质上都是 polyfills。 所以插件可能应该被内联到某个地方，并且它的逻辑是事件系统的核心。
   // 这可能允许我们在没有下面的 polyfill 插件的情况下发布 React 构建。
 
-  // 处理标准的，统一的事件的抽取工作：将对应dom元素的dom树跟fiber树对应的事件监听器抽取到委托队列中。
-  // 一些事件可以统一在一起处理，而对于一些特殊事件，会在下面的不同的事件插件系统中被处理
-  // SimpleEventPlugin 可以理解为通用的事件处理逻辑
+  // 处理符合w3c标准的事件系统的的抽取工作：将对应dom元素的dom树跟fiber树对应的事件监听器抽取到委托队列中。
+  // SimpleEventPlugin 可以理解为标准事件处理逻辑，也就是html5时间标准
+  // 如果需要处理非标准的，也就是一些古老浏览器中自己的插件系统，如ie8, ie9浏览器中，会启用下面插件系统处理
   SimpleEventPlugin.extractEvents(
     // 事件待触发队列
     dispatchQueue,
@@ -170,9 +171,12 @@ function extractEvents(
   // 只是为了稍后出现以下气泡事件并且不会触发任何事情，因为状态现在使事件插件的启发式无效 .
   // 我们可以改变所有这些插件以这种方式工作，但这可能会导致我们现在无法预见的其他未知副作用。
 
-  // 处理浏览器中特殊的事件
+  // 如果需要处理兼容性的事件，则启用事件插件系统
+  // 也就是如果构建的react需要兼容低版本浏览器的话，就需要开启非标准的事件处理器
+  // react中，利用一个插件系统来实现。这个插件系统是为了处理复杂的浏览器兼容问题而设计，不是为了外部可以扩展事件处理。
+  // 处理浏览器兼容的原理是，对于当前环境下不支持的事件，或者不标准的行为，尽量实现成标准的或者使用其他的事件实现
   if (shouldProcessPolyfillPlugins) {
-    // 处理鼠标移出移入事件
+    // 鼠标移出移入事件的抽取浏览器兼容处理
     EnterLeaveEventPlugin.extractEvents(
       // 事件待触发队列
     dispatchQueue,
@@ -189,8 +193,7 @@ function extractEvents(
     // 需要添加事件的dom节点  ==> 基本为react挂在的节点
     targetContainer,
     );
-    // TODO: ll ChangeEventPlugin.extractEvents
-    // FIXME: READ_THIS
+    // onChange事件的抽取浏览器兼容处理
     ChangeEventPlugin.extractEvents(
       // 事件待触发队列
       dispatchQueue,
@@ -207,7 +210,7 @@ function extractEvents(
       // 需要添加事件的dom节点  ==> 基本为react挂在的节点
       targetContainer,
     );
-    // TODO: ll SelectEventPlugin.extractEvents
+    // onSelect事件的抽取浏览器兼容处理
     SelectEventPlugin.extractEvents(
       // 事件待触发队列
       dispatchQueue,
@@ -224,7 +227,7 @@ function extractEvents(
       // 需要添加事件的dom节点  ==> 基本为react挂在的节点
       targetContainer,
     );
-    // TODO: ll BeforeInputEventPlugin.extractEvents
+    // onBeforeInput事件的抽取浏览器兼容处理
     BeforeInputEventPlugin.extractEvents(
       // 事件待触发队列
       dispatchQueue,
@@ -288,33 +291,58 @@ export const nonDelegatedEvents: Set<DOMEventName> = new Set([
   ...mediaEventTypes,
 ]);
 
+// 执行委托(单个事件，单个监听器)
 function executeDispatch(
+  /* 事件对象(合成事件) */
   event: ReactSyntheticEvent,
+  // 监听器，为设置在组件属性中事件属性(on*)的值
   listener: Function,
+  // 对应的dom节点
   currentTarget: EventTarget,
 ): void {
+  // 事件类型
   const type = event.type || 'unknown-event';
+  // 设置事件的目标dom节点
   event.currentTarget = currentTarget;
+  // 调用监听器并且捕获它的第一个异常
+  // 将事件的监听器受保护的方式当时执行
+  // 受保护的含义是：保证在执行过程中，不会直接抛出异常中断react的流程，而是以报告的方式。
   invokeGuardedCallbackAndCatchFirstError(type, listener, undefined, event);
+  // 清空事件的currentTarget属性，因为是复合事件，多用在多个监听器里面
   event.currentTarget = null;
 }
 
+//处理事件委托队列中的每一项
 function processDispatchQueueItemsInOrder(
+  // 事件对象，合成事件
   event: ReactSyntheticEvent,
+  // 监听器队列
   dispatchListeners: Array<DispatchListener>,
+  // 是否是捕获阶段
   inCapturePhase: boolean,
 ): void {
+  // 上一个实例
   let previousInstance;
+  // 如果是捕获阶段
   if (inCapturePhase) {
+    // 遍历监听器集合，捕获阶段从尾到头依次触发
     for (let i = dispatchListeners.length - 1; i >= 0; i--) {
+      // instance: 对应的fiber实例
+      // currentTarget 对应的dom节点
+      // listener监听器，为组件设置在props里面的on*事件属性的值
       const {instance, currentTarget, listener} = dispatchListeners[i];
+      // 如果当前实例等于上一个处理的实例，且事件设置了停止冒泡，则不处理
       if (instance !== previousInstance && event.isPropagationStopped()) {
         return;
       }
+      // 执行事件委托
       executeDispatch(event, listener, currentTarget);
       previousInstance = instance;
     }
-  } else {
+  }
+  // 冒泡阶段
+  else {
+    // 遍历监听器集合，冒泡阶段从头到尾依次触发，其他跟捕获阶段一致
     for (let i = 0; i < dispatchListeners.length; i++) {
       const {instance, currentTarget, listener} = dispatchListeners[i];
       if (instance !== previousInstance && event.isPropagationStopped()) {
@@ -326,17 +354,29 @@ function processDispatchQueueItemsInOrder(
   }
 }
 
+// 处理委托队列
 export function processDispatchQueue(
+  // 事件委托队列队列
   dispatchQueue: DispatchQueue,
+  // 事件系统标记
+  // => 0
   eventSystemFlags: EventSystemFlags,
 ): void {
+  // 如果是捕获阶段
   const inCapturePhase = (eventSystemFlags & IS_CAPTURE_PHASE) !== 0;
+  // 处理委托队列中的每一个事件
   for (let i = 0; i < dispatchQueue.length; i++) {
+    // 获取队列中每一个事件的事件对象和监听器集合
     const {event, listeners} = dispatchQueue[i];
-    processDispatchQueueItemsInOrder(event, listeners, inCapturePhase);
+    // 处理事件委托队列中的每一
+    processDispatchQueueItemsInOrder(/* 事件对象,合成事件对象 */event, /* 监听器集合 */listeners, /* 是否是捕获阶段 */inCapturePhase);
     //  event system doesn't use pooling.
+    // 翻译：事件系统不使用池概念。
   }
   // This would be a good time to rethrow if any of the event handlers threw.
+  // 翻译：如果有任何事件处理程序抛出，这将是重新抛出的好时机。
+
+  // 抛出来一段时间批量执行某个函数的首次异常
   rethrowCaughtError();
 }
 
@@ -360,8 +400,8 @@ function dispatchEventsForPlugins(
   // 事件待触发队列
   const dispatchQueue: DispatchQueue = [];
   // 抽取事件
-  // TODO: extractEvents
-  // FIXME: 下沉 13
+  // 从targetInst对象开始，访问器祖先节点，获取所有指定名字的事件设置的属性值压入队列。
+  // 鉴于浏览器兼容的考虑，一些特殊的事件需要其他的事件模拟实现，所以这个压入到队列中的也有可能是其他事件。
   extractEvents(
     // 事件待触发队列
     dispatchQueue,
@@ -379,7 +419,6 @@ function dispatchEventsForPlugins(
     targetContainer,
   );
   // 处理事件队列
-  // TODO: processDispatchQueue
   processDispatchQueue(dispatchQueue, eventSystemFlags);
 }
 
@@ -435,7 +474,8 @@ export function listenToAllSupportedEvents(
     }
     // 进行已经处理后的标记，避免重复处理
     (rootContainerElement: any)[listeningMarker] = true;
-    // 对所有当前支持的原生事件进行处理
+    // 对所有当前支持的原生事件遍历，一次在当前跟节点添加事件监听器。
+    // 事件委托机制从容器节点接通所有事件，然后调用对应组件的事件属性值
     allNativeEvents.forEach(domEventName => {
       // 根据在冒泡还是广播阶段出发事件，分别执行不同的调用。但其实下面的代码这样写更好
       // listenToNativeEvent(
@@ -445,8 +485,10 @@ export function listenToAllSupportedEvents(
       //   null,
       // );
 
-
+      // 需要进行事件委托的事件
+      // 额外添加一个冒泡事件
       if (!nonDelegatedEvents.has(domEventName)) {
+        // 在当前容器节点监听一个原生的事件
         listenToNativeEvent(
           domEventName,
           false,
@@ -454,7 +496,7 @@ export function listenToAllSupportedEvents(
           null,
         );
       }
-      // FIXME: 下沉 5
+      // 监听一个原生的事件
       listenToNativeEvent(
         domEventName,
         true,
@@ -502,13 +544,13 @@ export function listenToNativeEvent(
   // register it to the root container. Otherwise, we should
   // register the event to the target element and mark it as
   // a non-delegated event.
+
   if (
     // 如果传入了targetElement参数
     targetElement !== null &&
     // 冒泡阶段监听
     !isCapturePhaseListener &&
-    // 不需要委托
-    // 当前阅读下来， nonDelegatedEvents.has(domEventName) === isCapturePhaseListener, 所以不会进入这个分支
+    // 不需要事件委托机制的事件
     nonDelegatedEvents.has(domEventName)
   ) {
     // For all non-delegated events, apart from scroll, we attach
@@ -525,7 +567,7 @@ export function listenToNativeEvent(
     // 对于所有非委托事件，除了滚动之外，我们将它们的事件侦听器附加到它们的事件触发的相应元素上。
     // 这意味着我们可以跳过这一步，因为之前已经添加了事件监听器。
     // 但是，我们对滚动事件进行特殊处理，因为实际情况是任何元素都可以滚动。
-    // TODO:
+    //
     // 理想情况下，我们最终会对 nonDelegatedEvents 列表中的所有事件应用相同的逻辑。
     // 然后我们可以删除这种特殊情况并对所有事件使用相同的逻辑。
 
@@ -560,9 +602,7 @@ export function listenToNativeEvent(
     if (isCapturePhaseListener) {
       eventSystemFlags |= IS_CAPTURE_PHASE;
     }
-    // 添加事件监听器
-    // TODO: addTrappedEventListener
-    // FIXME: 下沉 6
+    // 往跟节点添加指定名字的添加事件监听器，在触发是调用事件委托机制
     addTrappedEventListener(
       target,
       domEventName,
@@ -570,7 +610,7 @@ export function listenToNativeEvent(
       // 是否广播还是冒泡阶段捕获事件
       isCapturePhaseListener,
     );
-    // 混存住这个添加的监听器，防止重复添加
+    // 缓存住这个添加的监听器，防止重复添加
     listenerSet.add(listenerSetKey);
   }
 }
@@ -646,9 +686,7 @@ function addTrappedEventListener(
   // => true
   isDeferredListenerForLegacyFBSupport?: boolean,
 ) {
-  // 创建具有优先级的事件侦听器
-  // TODO: => createEventListenerWrapperWithPriority
-  // FIXME: 下沉 7
+  // 创建具有优先级的事件监听器
   let listener = createEventListenerWrapperWithPriority(
     // 需要添加时间的dom节点
     // => 基本为react挂在的节点
@@ -669,6 +707,7 @@ function addTrappedEventListener(
   // passive: Boolean，设置为true时，表示 listener 永远不会调用 preventDefault()。
   // 如果 listener 仍然调用了这个函数，客户端将会忽略它并抛出一个控制台警告。查看 使用 passive 改善的滚屏性能 了解更多.
 
+  // 开始计算绑定事件时，是否需要设置passive选项
   let isPassiveListener = undefined;
   // 如果当前环境支持使用addEventListener的passive选项
   if (passiveBrowserEventsSupported) {
@@ -727,6 +766,7 @@ function addTrappedEventListener(
 
   // 做一下脸书内部操作
   // 不细看
+  // 简单的理解是，fb的传统模式，事件的绑定都是once
   if (enableLegacyFBSupport && isDeferredListenerForLegacyFBSupport) {
     // 做一下包裹代理
     const originalListener = listener;
@@ -745,18 +785,22 @@ function addTrappedEventListener(
   // 翻译： 这里的组合太多了。 巩固他们。
   // 意思是，这里需要考虑的情况太多了，后续需要优化代码（确实代码写的很冗余）
 
-  if (
-    // 如果需要广播阶段就捕获事件
-    isCapturePhaseListener) {
-    if (
-      // 如果没有设置Passive选项
-      isPassiveListener !== undefined) {
+  // 下面的代码，在挂载节点上(事件委托机制中的事件触发器)绑定事件，
+  // 根据当前是否是捕获阶段和事需要需要设置Passive，不同的方式进行绑定事件
 
-      // 添加广播阶段就生效的监听器(Capture选项默认为true)，并设置 Passive 选项
-      // TODO: addEventCaptureListenerWithPassiveFlag
+  // 下面的代码一大堆，其实就是设置js中添加事件的第三个选项中capture，passive的值
+
+  // 如果需要捕获(广播)阶段就捕获事件
+  if (isCapturePhaseListener) {
+      // 如果设置Passive选项
+    if (isPassiveListener !== undefined) {
+
+      // 绑定事件，添加到捕获阶段，并设置 Passive 选项
+      // 返回一个可以取消事件绑定的函数
       unsubscribeListener = addEventCaptureListenerWithPassiveFlag(
         // 目标节点
         // => 基本为react挂在节点
+        // 这里就是监听事件的dom节点，委托事件，所有的事件都监听在这个元素
         targetContainer,
         // 时间名
         domEventName,
@@ -766,8 +810,7 @@ function addTrappedEventListener(
         isPassiveListener,
       );
     } else {
-      // 添加广播阶段就生效的监听器(Capture选项默认为true)
-      // TODO: addEventCaptureListener
+      // 添加一个事件，只是捕获阶段
       unsubscribeListener = addEventCaptureListener(
         targetContainer,
         domEventName,
@@ -775,11 +818,9 @@ function addTrappedEventListener(
       );
     }
   } else {
-    if (
-      // 如果需要广播阶段就捕获事件
-      isPassiveListener !== undefined) {
-      // 添加冒泡阶段就生效的监听器(Capture选项默认为true)，并设置 Passive 选项
-      // TODO: addEventBubbleListenerWithPassiveFlag
+    // 如果需要设置Passive属性
+    if (isPassiveListener !== undefined) {
+      // 添加一个事件，在冒泡阶段，且设置Passive选项
       unsubscribeListener = addEventBubbleListenerWithPassiveFlag(
         targetContainer,
         domEventName,
@@ -787,8 +828,7 @@ function addTrappedEventListener(
         isPassiveListener,
       );
     } else {
-      // 添加广播阶段就生效的监听器(Capture选项默认为true)
-      // TODO: addEventBubbleListener
+      // 添加一个事件，在冒泡阶段
       unsubscribeListener = addEventBubbleListener(
         targetContainer,
         domEventName,
@@ -965,7 +1005,6 @@ export function dispatchEventForPluginEventSystem(
                 // 获取对应的dom节点
                 const grandContainer = grandNode.stateNode.containerInfo;
                 // 如果计算出来的容器dom节点是传入进来dom节点
-                // TODO: => isMatchingRootContainer
                 if (
                   isMatchingRootContainer(grandContainer, targetContainerNode)
                 ) {
@@ -1024,11 +1063,14 @@ export function dispatchEventForPluginEventSystem(
     }
   }
 
-  // 批量处理事件更新
+  // 批量处理事件更新(执行)
+  // 当前默认的批量更新方式就是直接同步全部执行
   batchedEventUpdates(() =>
-    // 在插件事件系统中调度所有事件
-    // TODO: => dispatchEventsForPlugins
-    // FIXME: 下沉 12
+    // 触发事件执行
+    // 1. 在处理兼容浏览器的插件系统中执行
+    // 2. 会找到ancestorInst的所有祖先节点，搜集他们的组件属性设置的对应事件的监听器(on*)存入队列，
+    //    然后按照冒泡和广播的两种方式执行一次
+    // 3. 执行事件的监听器时，会使用受保护的方式执行所有的监听器，保证所有的监听器执行完毕后才报错，报错也只会报错第一个异常。
     dispatchEventsForPlugins(
       // 事件名
       domEventName,
@@ -1190,29 +1232,50 @@ export function accumulateSinglePhaseListeners(
 // This is because we only process these plugins
 // in the bubble phase, so we need to accumulate two
 // phase event listeners (via emulation).
+// 翻译：
+//  我们应该只将此功能用于：
+//  - BeforeInputEventPlugin
+//  - ChangeEventPlugin
+//  - SelectEventPlugin
+// 这是因为我们只在冒泡阶段处理这些插件，所以我们需要累积两个阶段事件监听器（通过模拟）。
+
+// 收集fiber节点树上的所有事件监听器集合
 export function accumulateTwoPhaseListeners(
+  // 设置事件的fiber实例
   targetFiber: Fiber | null,
+  // 事件在react里面的名字，如onChange
   reactName: string,
 ): Array<DispatchListener> {
+  // 拼接成捕获阶段事件名
   const captureName = reactName + 'Capture';
+  // 监听器集合
   const listeners: Array<DispatchListener> = [];
+  // 当前处理的fiber对象
   let instance = targetFiber;
 
   // Accumulate all instances and listeners via the target -> root path.
+  // 翻译：收集target -> root路径所有侦听器。
+
   while (instance !== null) {
+    // 获取状态和标签
     const {stateNode, tag} = instance;
     // Handle listeners that are on HostComponents (i.e. <div>)
     // HostComponent: 原生组件
     if (tag === HostComponent && stateNode !== null) {
+      // 原生事件上的状态节点是dom节点
       const currentTarget = stateNode;
+      // 获取侦听器，从fiber对象中存取组件的属性中获取事件属性的值，也就是我们设置的组件的onChange的值
       const captureListener = getListener(instance, captureName);
       if (captureListener != null) {
+        // 捕获放在队列头
         listeners.unshift(
           createDispatchListener(instance, captureListener, currentTarget),
         );
       }
+      // 获取冒泡的事件侦听器
       const bubbleListener = getListener(instance, reactName);
       if (bubbleListener != null) {
+        // 冒泡放在队列尾
         listeners.push(
           createDispatchListener(instance, bubbleListener, currentTarget),
         );

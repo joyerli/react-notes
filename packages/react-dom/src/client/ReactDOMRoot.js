@@ -161,13 +161,43 @@ function createRootImpl(
 
   // 下面的if else相关都是进行事件绑定处理
 
-  // 当前版本enableEagerRootListeners为true, 开启root监听模式，也就是不使用document的对象监听，为react17的特性
+  // 当前版本enableEagerRootListeners为true, 开启root监听模式，也就是不使用document的对象监听，
+  // root对象监听为react17的特性, 16位document的对象监听监听
   if (enableEagerRootListeners) {
     // 计算承载事件的dom元素（为注释文本节点时，用的是他的父节点）
     const rootContainerElement =
       container.nodeType === COMMENT_NODE ? container.parentNode : container;
     // 在当前容器dom节点监听所有需要支持的事件
-    // FIXME: 下沉 4
+
+    // 这里开始react的整个事件系统(>17), 具有一下特性
+    // 1. 采用事件委托机制，整个react应用不会监听其他dom对象的事件，只会监听根节点的。
+    // 2. 跟节点上会监听react中设置的所有需要监听的事件列表
+    // 3. 根节点上某个事件触发后，会收集整个react的fiber树上需要处理的节点中对应事件的监听器,
+    //    这些监听器时是使用者通过on{NativeEventName}设置的值，如onCLik。然后会执行这些监听器。
+    // 4. 实现的具体原理是：
+    //    4.1 根据事件对象中的target, 获取对应的fiber对象，然后创建一个空的事件委托队列.
+    //    4.2 会将当前事件套一层代理，叫做合成对象。合同对象由于一个事件对象中需要在多个监听器中使用，
+    //        所以采用套一层壳子来解决target需要不停变化，以及在不同监听器可能设置成不同的传播设置等。
+    //        所以对于react事件系统中的event对象，对于事件的内部属性需要慎重修改。
+    //    4.3 根据事件对象中的target， 获取对应的fiber对象，
+    //        然后获取fiber对象和它的祖先节点中对应组件属性中的原生事件监听属性值（监听器），按照顺序收集成一个队列。
+    //    4.4 将合同事件对象和监听器队列，fiber实例等组装成一个委托事件对象。然后放入一个委托事件队列中。
+    //    4.5 一般符合html5标准的，不需要考虑浏览器兼容的事件，委托事件队列就只有一个对象。
+    //        但是对于一些有浏览器兼容性问题，需要特殊处理(如change，select,input等事件)。
+    //        如从其他事件模拟实现的情况，那么在模拟的事件上，就可能触发多种事件，所以需要一个队列。
+    //        如委托节点触发一个mouseUp事件，除了一个mouseUp事件的委托事件对象，
+    //        还可以能有一个select事件的委托对象(select事件在传统浏览器上通过监听鼠标等一系列事件模拟实现)。
+    //        并且这两个委托对象的fiber实例可能都不一样。
+    //    4.6 由于react可能需要兼容到ie8, 已经需要处理特别多的事件，那么需要处理浏览器的兼容性问题非常的复杂。
+    //        react内部采用插件系统来架构这一块的处理逻辑。不支持外部扩展其事件插件系统。
+    //    4.7 react事件委托机制中重新实现了捕获和冒泡两个事件阶段，冒泡事件从头至尾执行，捕获事件从尾至头(待确认)。
+    //        事件中停止冒泡也是重新实现。
+    //    4.8 组件上设置的`on*`原生事件的属性的值，默认都是冒泡事件，只在冒泡阶段执行，如果需要在捕获阶段就执行，
+    //        需要家长capture后缀，如onClickCapture
+    // 5. 采用事件委托机制是为了提高性能，且可以跟原来的dom节点无关，而是在react fiber树的层级关系上进行事件传播。
+    //    可以让让使用者不需要关注底层dom结构，提高开发体验。
+
+    // 在当前挂载节点上监听所有支持的事件，也就是开启事件委托机制
     listenToAllSupportedEvents(rootContainerElement);
   } else {
     // 老版本模式(<17.0.0)
@@ -188,13 +218,15 @@ function createRootImpl(
 
       // 对代码中doc: any的类型为any的说明
 
-      // TODO: eagerlyTrapReplayableEvents 捕获事件
+      // TODO: ll eagerlyTrapReplayableEvents 捕获事件
+      // 老版本将不会深入，只会稍微看一下
       eagerlyTrapReplayableEvents(container, ((doc: any): Document));
     } else if (
       containerNodeType !== DOCUMENT_FRAGMENT_NODE &&
       containerNodeType !== DOCUMENT_NODE
     ) {
-      // TODO: 确保监听onMouseEnter
+      // 确保监听onMouseEnter
+      // TODO: ll ensureListeningTo
       ensureListeningTo(container, 'onMouseEnter', null);
     }
   }
@@ -203,7 +235,7 @@ function createRootImpl(
   if (mutableSources) {
     for (let i = 0; i < mutableSources.length; i++) {
       const mutableSource = mutableSources[i];
-      // TODO: registerMutableSourceForHydration
+      // TODO: ll registerMutableSourceForHydration
       registerMutableSourceForHydration(root, mutableSource);
     }
   }

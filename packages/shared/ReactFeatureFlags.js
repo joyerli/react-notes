@@ -142,6 +142,9 @@ export const enableLegacyFBSupport = false;
 export const deferRenderPhaseUpdateToNextBatch = true;
 
 // Replacement for runWithPriority in React internals.
+// 替换 React 内部的 runWithPriority。
+// 解耦调度中更新操作的优先级概念，引用通道(车道)的概念，开启后，
+//  在执行runWithPriority，会修改通道的优先级
 export const decoupleUpdatePriorityFromScheduler = false;
 
 export const enableDiscreteEventFlushingChange = false;

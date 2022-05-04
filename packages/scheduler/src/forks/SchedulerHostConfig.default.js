@@ -31,6 +31,7 @@ if (hasPerformanceNow) {
 if (
   // If Scheduler runs in a non-DOM environment, it falls back to a naive
   // implementation using setTimeout.
+  // 如果调度器执行在非dom的环境中，调度器的实现采用原生的setTimeout实现
   typeof window === 'undefined' ||
   // Check if MessageChannel is supported, too.
   typeof MessageChannel !== 'function'

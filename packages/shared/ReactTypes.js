@@ -90,6 +90,8 @@ export type EventPriority = 0 | 1 | 2;
 
 export const DiscreteEvent: EventPriority = 0;
 export const UserBlockingEvent: EventPriority = 1;
+// 连续事件
+// 指那种持续触发事件监听器的事件，如拖拽，鼠标移动等。
 export const ContinuousEvent: EventPriority = 2;
 
 export type ReactFundamentalComponentInstance<C, H> = {|

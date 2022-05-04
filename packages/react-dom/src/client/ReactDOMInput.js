@@ -405,19 +405,38 @@ function updateNamedCousins(rootNode, props) {
 // when the user is inputting text
 //
 // https://github.com/facebook/react/issues/7253
+
+// 翻译：
+// 在 Chrome 中，将 defaultValue 分配给某些输入类型会触发输入验证。
+// 对于数字输入，显示值会丢失尾随小数点。 对于电子邮件输入，Chrome 会引发“指定的值 <x> 不是有效的电子邮件地址”。
+
+// 这里我们检查一下defaultValue是否真的发生了变化，避免了用户在输入文本时出现的这些问题
+
+// 设置默认值
 export function setDefaultValue(
+  // dom节点对象
   node: InputWithWrapperState,
+  // 节点类型
   type: ?string,
+  // 值
   value: *,
 ) {
   if (
     // Focused number inputs synchronize on blur. See ChangeEventPlugin.js
+    // 翻译：重点数字输入在模糊上同步。 请参阅 ChangeEventPlugin.js
     type !== 'number' ||
+    // getActiveElement：获取当前文档中具有焦点的元素
+    // 如果当前文档中的聚焦元素不是当前节点(失去焦点，blur事件触发)
     getActiveElement(node.ownerDocument) !== node
   ) {
+    // 如果值是空
     if (value == null) {
+      // 则设置节点的默认值为一开始的初始值
       node.defaultValue = toString(node._wrapperState.initialValue);
-    } else if (node.defaultValue !== toString(value)) {
+    }
+    // 如果值不想等
+    else if (node.defaultValue !== toString(value)) {
+      // 修改默认值
       node.defaultValue = toString(value);
     }
   }

@@ -293,6 +293,9 @@ export function queueDiscreteEvent(
 }
 
 // Resets the replaying for this type of continuous event to no event.
+// 翻译：将此类连续事件的重播重置为无事件。
+
+// 在等待重放的事件列表中清除指定名字的事件
 export function clearIfContinuousEvent(
   domEventName: DOMEventName,
   nativeEvent: AnyNativeEvent,
@@ -325,18 +328,28 @@ export function clearIfContinuousEvent(
   }
 }
 
+//收集或者创建连续重复事件队列
 function accumulateOrCreateContinuousQueuedReplayableEvent(
+  // 用于保存的队列，全局变量
   existingQueuedEvent: null | QueuedReplayableEvent,
+  // 事件在初始化没有委托成功的阻塞点
   blockedOn: null | Container | SuspenseInstance,
+  // 原生事件名
   domEventName: DOMEventName,
+  // 事件系统
   eventSystemFlags: EventSystemFlags,
+  // 目标容器，react的挂载点
   targetContainer: EventTarget,
+  // 原生事件
   nativeEvent: AnyNativeEvent,
 ): QueuedReplayableEvent {
   if (
     existingQueuedEvent === null ||
+    // 当触发的事件对象不一致时，也会重新创建
+    // 也就是说，队列只会保存事件的最后一次触发
     existingQueuedEvent.nativeEvent !== nativeEvent
   ) {
+    // 创建一个可重放的队列
     const queuedEvent = createQueuedReplayableEvent(
       blockedOn,
       domEventName,
@@ -344,10 +357,18 @@ function accumulateOrCreateContinuousQueuedReplayableEvent(
       targetContainer,
       nativeEvent,
     );
+    // 如果存在阻塞点
+    // 当前源码阅读过程中，肯定不为空
     if (blockedOn !== null) {
+      // 获取阻塞点(dom对象)对应的fiber实例
       const fiber = getInstanceFromNode(blockedOn);
+      // 存在对应的fiber对象
       if (fiber !== null) {
         // Attempt to increase the priority of this target.
+        // 翻译： 尝试增加此目标的优先级。
+
+        // 尝试连续的聚合(Hydration)
+        // TODO: ll attemptContinuousHydration
         attemptContinuousHydration(fiber);
       }
     }
@@ -357,7 +378,13 @@ function accumulateOrCreateContinuousQueuedReplayableEvent(
   // the different event systems have different DOM event listeners.
   // We can accumulate the flags, and the targetContainers, and
   // store a single event to be replayed.
+
+  // 翻译： 如果我们已经对这个确切的事件进行了排队，那是因为不同的事件系统有不同的 DOM 事件监听器。
+  // 我们可以累积标志和目标容器，并存储要重放的单个事件。
+
   existingQueuedEvent.eventSystemFlags |= eventSystemFlags;
+  // 当原队列中不存在时，压入队列中，
+  // 注意这里时压入容器
   const targetContainers = existingQueuedEvent.targetContainers;
   if (
     targetContainer !== null &&
@@ -368,19 +395,32 @@ function accumulateOrCreateContinuousQueuedReplayableEvent(
   return existingQueuedEvent;
 }
 
+// 压入连续事件
+// 连续(Continuous)事件指的是mouseleva,mouseenter这样的组合事件
 export function queueIfContinuousEvent(
+  // 事件触发被阻塞的实例
   blockedOn: null | Container | SuspenseInstance,
+  // 原生事件名
   domEventName: DOMEventName,
+  // 事件系统标记
   eventSystemFlags: EventSystemFlags,
+  // 目标容器，react挂载节点
   targetContainer: EventTarget,
+  // 原生事件
   nativeEvent: AnyNativeEvent,
 ): boolean {
   // These set relatedTarget to null because the replayed event will be treated as if we
   // moved from outside the window (no target) onto the target once it hydrates.
   // Instead of mutating we could clone the event.
+
+  // 这些将relatedTarget 设置为null，因为一旦hydrates，
+  // 重播的事件将被视为我们从窗口外（无目标）移动到目标上。
+  // 我们可以克隆事件，而不是变异。
+
   switch (domEventName) {
     case 'focusin': {
       const focusEvent = ((nativeEvent: any): FocusEvent);
+      // 收集或者创建连续重复事件队列
       queuedFocus = accumulateOrCreateContinuousQueuedReplayableEvent(
         queuedFocus,
         blockedOn,
